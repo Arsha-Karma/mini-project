@@ -1,7 +1,7 @@
+
 <?php
 session_start();
-
-require_once('dbconnect.php');
+require_once('dbconnect.php'); // Include the database connection file
 
 $error_message = '';
 $success_message = '';
@@ -20,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         $error_message = "Please enter both username and password";
     } else {
         try {
-            $stmt = $conn->prepare("SELECT Signup_id, username, password, role_type, Verification_Status 
+            $stmt = $conn->prepare("SELECT Signup_id, username, password, role_type, verification_status 
                                   FROM tbl_signup 
                                   WHERE username = ?");
             
@@ -39,7 +39,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             if ($result->num_rows === 1) {
                 $user = $result->fetch_assoc();
                 
-                if ($user['Verification_Status'] === 'disabled') {
+                if ($user['verification_status'] === 'disabled') {
                     $show_deactivation_modal = true;
                     recordLoginAttempt($conn, $user['Signup_id'], 'failed');
                 } else if (password_verify($password, $user['password'])) {

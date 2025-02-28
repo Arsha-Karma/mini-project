@@ -11,8 +11,58 @@ if (!isset($_SESSION['logged_in'])) {
 }
 
 require_once('dbconnect.php');
-$database_name = "perfume_store";
+$database_name = "perfumes";
 mysqli_select_db($conn, $database_name);
+
+// Determine which section to show on top
+$view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
+
+// Add missing columns to tbl_users and tbl_seller if they don't exist
+$alterQueries = [
+    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS email VARCHAR(100) AFTER username",
+    "ALTER TABLE tbl_users DROP COLUMN IF EXISTS phone_number",
+    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS phoneno VARCHAR(15) AFTER email",
+    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') DEFAULT 'active' AFTER role_type",
+    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS verification_status ENUM('active', 'disabled') DEFAULT 'active' AFTER status",
+    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS email VARCHAR(100) AFTER Sellername",
+    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS phoneno VARCHAR(15) AFTER email",
+    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') DEFAULT 'active' AFTER role_type",
+    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS verification_status ENUM('active', 'disabled') DEFAULT 'active' AFTER status",
+    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER status"
+];
+
+foreach ($alterQueries as $query) {
+    if (!mysqli_query($conn, $query)) {
+        error_log("Error executing query: " . mysqli_error($conn));
+    }
+}
+
+// Calculate total counts
+$totalUsersQuery = "SELECT 
+    COUNT(*) as total,
+    SUM(CASE WHEN verification_status = 'active' THEN 1 ELSE 0 END) as active_count,
+    SUM(CASE WHEN verification_status = 'disabled' THEN 1 ELSE 0 END) as inactive_count
+    FROM tbl_users WHERE role_type = 'user'";
+
+$totalSellersQuery = "SELECT 
+    COUNT(*) as total,
+    SUM(CASE WHEN verification_status = 'active' THEN 1 ELSE 0 END) as active_count,
+    SUM(CASE WHEN verification_status = 'disabled' THEN 1 ELSE 0 END) as inactive_count
+    FROM tbl_seller WHERE role_type = 'seller'";
+
+$totalUsersResult = mysqli_query($conn, $totalUsersQuery);
+$totalSellersResult = mysqli_query($conn, $totalSellersQuery);
+
+$userStats = mysqli_fetch_assoc($totalUsersResult);
+$sellerStats = mysqli_fetch_assoc($totalSellersResult);
+
+$totalUsers = $userStats['total'] ?? 0;
+$activeUsers = $userStats['active_count'] ?? 0;
+$inactiveUsers = $userStats['inactive_count'] ?? 0;
+
+$totalSellers = $sellerStats['total'] ?? 0;
+$activeSellers = $sellerStats['active_count'] ?? 0;
+$inactiveSellers = $sellerStats['inactive_count'] ?? 0;
 
 // Include PHPMailer
 use PHPMailer\PHPMailer\PHPMailer;
@@ -27,17 +77,17 @@ function sendDeactivationEmail($email) {
     $mail = new PHPMailer(true);
     try {
         $mail->isSMTP();
-        $mail->Host       = 'smtp.gmail.com'; // Replace with your SMTP server
-        $mail->SMTPAuth   = true;
-        $mail->Username   = 'arshaprasobh318@gmail.com'; // Replace with your email
-        $mail->Password   = 'ilwf fpya pwkx pmat'; // Replace with your email password
+        $mail->Host = 'smtp.gmail.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'arshaprasobh318@gmail.com';
+        $mail->Password = 'ilwf fpya pwkx pmat';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port       = 587;
+        $mail->Port = 587;
 
-        $mail->setFrom('arshaprasobh318@gmail.com', 'Perfume Paradise ');
+        $mail->setFrom('arshaprasobh318@gmail.com', 'Perfume Paradise');
         $mail->addAddress($email);
         $mail->Subject = 'Account Deactivation Notice';
-        $mail->Body    = "Dear User,\n\nYour account has been deactivated by the administrator. If you believe this was done in error, please contact our support team.\n\nBest regards,\nPerfume Paradise Team";
+        $mail->Body = "Dear User,\n\nYour account has been deactivated by the administrator. If you believe this was done in error, please contact our support team.\n\nBest regards,\nPerfume Paradise Team";
 
         $mail->send();
         return true;
@@ -47,251 +97,91 @@ function sendDeactivationEmail($email) {
     }
 }
 
-// Add missing columns to tbl_users and tbl_seller if they don't exist
-$alterQueries = [
-    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS email VARCHAR(100) AFTER username",
-    "ALTER TABLE tbl_users DROP COLUMN IF EXISTS phone_number",
-    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS phoneno VARCHAR(15) AFTER email",
-    "ALTER TABLE tbl_users ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') DEFAULT 'active' AFTER role_type",
-    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS email VARCHAR(100) AFTER Sellername",
-    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS phoneno VARCHAR(15) AFTER email",
-    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS status ENUM('active', 'inactive') DEFAULT 'active' AFTER role_type",
-    "ALTER TABLE tbl_seller ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP AFTER status"
-];
-
-foreach ($alterQueries as $query) {
-    if (!mysqli_query($conn, $query)) {
-        error_log("Error executing query: " . mysqli_error($conn));
-    }
-}
-
-// Improved sync data between tables function for users
-function syncUserData($conn) {
-    $insertQuery = "
-        INSERT INTO tbl_users (Signup_id, username, email, phoneno, role_type, status)
-        SELECT 
-            s.Signup_id,
-            s.username,
-            s.email,
-            s.Phoneno,
-            s.role_type,
-            IF(s.Verification_Status = 'verified', 'active', 'inactive') AS status
-        FROM tbl_signup s
-        LEFT JOIN tbl_users u ON s.Signup_id = u.Signup_id
-        WHERE u.Signup_id IS NULL AND s.role_type = 'user'
-    ";
-
-    $updateQuery = "
-        UPDATE tbl_users u
-        INNER JOIN tbl_signup s ON u.Signup_id = s.Signup_id
-        SET 
-            u.email = s.email,
-            u.phoneno = COALESCE(s.Phoneno, u.phoneno),
-            u.username = s.username,
-            u.role_type = s.role_type,
-            u.status = IF(s.Verification_Status = 'verified', 'active', 'inactive')
-        WHERE u.role_type = 'user'
-    ";
-
-    try {
-        if (!mysqli_query($conn, $insertQuery)) {
-            error_log("Error inserting new users: " . mysqli_error($conn));
-        }
-        if (!mysqli_query($conn, $updateQuery)) {
-            error_log("Error updating existing users: " . mysqli_error($conn));
-        }
-    } catch (Exception $e) {
-        error_log("Error syncing user data: " . $e->getMessage());
-    }
-}
-
-// Improved sync data between tables function for sellers
-function syncSellerData($conn) {
-    $insertQuery = "
-        INSERT INTO tbl_seller (Sellername, Signup_id, email, phoneno, role_type, status)
-        SELECT 
-            s.username,
-            s.Signup_id,
-            s.email,
-            s.Phoneno,
-            s.role_type,
-            IF(s.Verification_Status = 'verified', 'active', 'inactive') AS status
-        FROM tbl_signup s
-        LEFT JOIN tbl_seller sl ON s.Signup_id = sl.Signup_id
-        WHERE sl.Signup_id IS NULL AND s.role_type = 'seller'
-    ";
-
-    $updateQuery = "
-        UPDATE tbl_seller sl
-        INNER JOIN tbl_signup s ON sl.Signup_id = s.Signup_id
-        SET 
-            sl.email = s.email,
-            sl.phoneno = COALESCE(s.Phoneno, sl.phoneno),
-            sl.Sellername = s.username,
-            sl.role_type = s.role_type,
-            sl.status = IF(s.Verification_Status = 'verified', 'active', 'inactive')
-        WHERE sl.role_type = 'seller'
-    ";
-
-    try {
-        if (!mysqli_query($conn, $insertQuery)) {
-            error_log("Error inserting new sellers: " . mysqli_error($conn));
-        }
-        if (!mysqli_query($conn, $updateQuery)) {
-            error_log("Error updating existing sellers: " . mysqli_error($conn));
-        }
-    } catch (Exception $e) {
-        error_log("Error syncing seller data: " . $e->getMessage());
-    }
-}
-
-// Run the sync functions
-syncUserData($conn);
-syncSellerData($conn);
-
-// Fetch total users and sellers
-$totalUsersQuery = "SELECT COUNT(*) AS total_users FROM tbl_users WHERE role_type = 'user'";
-$totalSellersQuery = "SELECT COUNT(*) AS total_sellers FROM tbl_seller";
-
-$totalUsersResult = mysqli_query($conn, $totalUsersQuery);
-$totalSellersResult = mysqli_query($conn, $totalSellersQuery);
-
-$totalUsers = mysqli_fetch_assoc($totalUsersResult)['total_users'];
-$totalSellers = mysqli_fetch_assoc($totalSellersResult)['total_sellers'];
-
-// Improved handle user and seller actions
+// Handle user/seller activation/deactivation
 if (isset($_POST['action']) && isset($_POST['id'])) {
     $id = intval($_POST['id']);
     $action = $_POST['action'];
 
     try {
+        mysqli_begin_transaction($conn);
+        
         switch($action) {
             case 'activate_user':
-                // Begin transaction
-                mysqli_begin_transaction($conn);
-                
-                // Get current phone number
-                $phoneQuery = "SELECT phoneno FROM tbl_users WHERE Signup_id = $id";
-                $phoneResult = mysqli_query($conn, $phoneQuery);
-                $phone = mysqli_fetch_assoc($phoneResult)['phoneno'];
-                
-                if (!mysqli_query($conn, "UPDATE tbl_users SET status = 'active' WHERE Signup_id = $id")) {
-                    throw new Exception(mysqli_error($conn));
-                }
-                if (!mysqli_query($conn, "UPDATE tbl_signup SET 
-                    Verification_Status = 'verified',
-                    Phoneno = '$phone'
-                    WHERE Signup_id = $id")) {
-                    throw new Exception(mysqli_error($conn));
-                }
-                
-                mysqli_commit($conn);
+                $updateSignup = "UPDATE tbl_signup SET verification_status = 'active' WHERE Signup_id = ?";
+                $stmt = mysqli_prepare($conn, $updateSignup);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+
+                $updateUser = "UPDATE tbl_users SET status = 'active', verification_status = 'active' WHERE Signup_id = ?";
+                $stmt = mysqli_prepare($conn, $updateUser);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
                 break;
 
-                case 'deactivate_user':
-                    // Begin transaction
-                    mysqli_begin_transaction($conn);
-                    
-                    try {
-                        // Get current phone number and email
-                        $userQuery = "SELECT phoneno, email FROM tbl_users WHERE Signup_id = $id";
-                        $userResult = mysqli_query($conn, $userQuery);
-                        
-                        if (!$userResult) {
-                            throw new Exception("Failed to retrieve user information: " . mysqli_error($conn));
-                        }
-                        
-                        $userData = mysqli_fetch_assoc($userResult);
-                        $phone = $userData['phoneno'];
-                        $email = $userData['email']; // Get email directly from tbl_users
-                        
-                        // Update user status
-                        if (!mysqli_query($conn, "UPDATE tbl_users SET status = 'inactive' WHERE Signup_id = $id")) {
-                            throw new Exception("Failed to update user status: " . mysqli_error($conn));
-                        }
-                        
-                        // Update signup status
-                        if (!mysqli_query($conn, "UPDATE tbl_signup SET 
-                            Verification_Status = 'disabled',
-                            Phoneno = '$phone'
-                            WHERE Signup_id = $id")) {
-                            throw new Exception("Failed to update signup status: " . mysqli_error($conn));
-                        }
-                        
-                        // Send deactivation email
-                        if (!sendDeactivationEmail($email)) {
-                            // Instead of throwing exception, just log the error
-                            error_log("Warning: Failed to send deactivation email to $email, but user was still deactivated");
-                        }
-                        
-                        mysqli_commit($conn);
-                        
-                    } catch (Exception $e) {
-                        mysqli_rollback($conn);
-                        error_log("Error in deactivate_user action: " . $e->getMessage());
-                        header("Location: admindashboard.php?error=1");
-                        exit();
-                    }
-                    
-                    header("Location: admindashboard.php?success=1");
-                    exit();
-                    break;
+            case 'deactivate_user':
+                $emailQuery = "SELECT email FROM tbl_users WHERE Signup_id = ?";
+                $stmt = mysqli_prepare($conn, $emailQuery);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $email = mysqli_fetch_assoc($result)['email'];
+
+                $updateSignup = "UPDATE tbl_signup SET verification_status = 'disabled' WHERE Signup_id = ?";
+                $stmt = mysqli_prepare($conn, $updateSignup);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+
+                $updateUser = "UPDATE tbl_users SET status = 'inactive', verification_status = 'disabled' WHERE Signup_id = ?";
+                $stmt = mysqli_prepare($conn, $updateUser);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+
+                sendDeactivationEmail($email);
+                break;
 
             case 'activate_seller':
-                // Begin transaction
-                mysqli_begin_transaction($conn);
-                
-                // Get current phone number
-                $phoneQuery = "SELECT phoneno FROM tbl_seller WHERE seller_id = $id";
-                $phoneResult = mysqli_query($conn, $phoneQuery);
-                $phone = mysqli_fetch_assoc($phoneResult)['phoneno'];
-                
-                if (!mysqli_query($conn, "UPDATE tbl_seller SET status = 'active' WHERE seller_id = $id")) {
-                    throw new Exception(mysqli_error($conn));
-                }
-                if (!mysqli_query($conn, "UPDATE tbl_signup SET 
-                    Verification_Status = 'verified',
-                    Phoneno = '$phone'
-                    WHERE Signup_id = (SELECT Signup_id FROM tbl_seller WHERE seller_id = $id)")) {
-                    throw new Exception(mysqli_error($conn));
-                }
-                
-                mysqli_commit($conn);
+                $updateSignup = "UPDATE tbl_signup SET verification_status = 'active' 
+                               WHERE Signup_id = (SELECT Signup_id FROM tbl_seller WHERE seller_id = ?)";
+                $stmt = mysqli_prepare($conn, $updateSignup);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+
+                $updateSeller = "UPDATE tbl_seller SET status = 'active', verification_status = 'active' WHERE seller_id = ?";
+                $stmt = mysqli_prepare($conn, $updateSeller);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
                 break;
 
             case 'deactivate_seller':
-                // Begin transaction
-                mysqli_begin_transaction($conn);
-                
-                // Get current phone number
-                $phoneQuery = "SELECT phoneno FROM tbl_seller WHERE seller_id = $id";
-                $phoneResult = mysqli_query($conn, $phoneQuery);
-                $phone = mysqli_fetch_assoc($phoneResult)['phoneno'];
-                
-                if (!mysqli_query($conn, "UPDATE tbl_seller SET status = 'inactive' WHERE seller_id = $id")) {
-                    throw new Exception(mysqli_error($conn));
-                }
-                if (!mysqli_query($conn, "UPDATE tbl_signup SET 
-                    Verification_Status = 'disabled',
-                    Phoneno = '$phone'
-                    WHERE Signup_id = (SELECT Signup_id FROM tbl_seller WHERE seller_id = $id)")) {
-                    throw new Exception(mysqli_error($conn));
-                }
-                
-                // Get seller email
-                $emailQuery = "SELECT email FROM tbl_signup WHERE Signup_id = (SELECT Signup_id FROM tbl_seller WHERE seller_id = $id)";
-                $emailResult = mysqli_query($conn, $emailQuery);
-                $email = mysqli_fetch_assoc($emailResult)['email'];
-                
-                // Send deactivation email
-                if (!sendDeactivationEmail($email)) {
-                    throw new Exception("Failed to send deactivation email");
-                }
-                
-                mysqli_commit($conn);
+                $emailQuery = "SELECT email FROM tbl_seller WHERE seller_id = ?";
+                $stmt = mysqli_prepare($conn, $emailQuery);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+                $result = mysqli_stmt_get_result($stmt);
+                $email = mysqli_fetch_assoc($result)['email'];
+
+                $updateSignup = "UPDATE tbl_signup SET verification_status = 'disabled' 
+                               WHERE Signup_id = (SELECT Signup_id FROM tbl_seller WHERE seller_id = ?)";
+                $stmt = mysqli_prepare($conn, $updateSignup);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+
+                $updateSeller = "UPDATE tbl_seller SET status = 'inactive', verification_status = 'disabled' WHERE seller_id = ?";
+                $stmt = mysqli_prepare($conn, $updateSeller);
+                mysqli_stmt_bind_param($stmt, "i", $id);
+                mysqli_stmt_execute($stmt);
+
+                sendDeactivationEmail($email);
                 break;
         }
-        header("Location: admindashboard.php?success=1");
+        
+        mysqli_commit($conn);
+        // Maintain the current view after action
+        if (strpos($action, 'user') !== false) {
+            header("Location: admindashboard.php?view=users&success=1");
+        } else {
+            header("Location: admindashboard.php?view=sellers&success=1");
+        }
         exit();
     } catch (Exception $e) {
         mysqli_rollback($conn);
@@ -301,13 +191,13 @@ if (isset($_POST['action']) && isset($_POST['id'])) {
     }
 }
 
-// Improved fetch user data with proper joins
+// Fetch user data
 $usersQuery = "
     SELECT 
         u.username,
         u.email,
         COALESCE(u.phoneno, s.Phoneno) as phoneno,
-        u.status,
+        u.verification_status,
         u.role_type,
         s.created_at,
         u.Signup_id
@@ -319,18 +209,14 @@ $usersQuery = "
 
 $usersResult = mysqli_query($conn, $usersQuery);
 
-if (!$usersResult) {
-    error_log("Error fetching users: " . mysqli_error($conn));
-}
-
-// Improved fetch seller data with proper joins
+// Fetch seller data
 $sellersQuery = "
     SELECT 
         sl.seller_id,
         sl.Sellername,
         sl.email,
         COALESCE(sl.phoneno, s.Phoneno) as phoneno,
-        sl.status,
+        sl.verification_status,
         sl.role_type,
         s.created_at
     FROM tbl_seller sl
@@ -340,10 +226,6 @@ $sellersQuery = "
 ";
 
 $sellersResult = mysqli_query($conn, $sellersQuery);
-
-if (!$sellersResult) {
-    error_log("Error fetching sellers: " . mysqli_error($conn));
-}
 ?>
 
 <!DOCTYPE html>
@@ -458,6 +340,7 @@ table {
     border-radius: 8px;
     overflow: hidden;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
 }
 
 th, td {
@@ -540,171 +423,181 @@ tr:hover {
 .logout-btn:hover {
     opacity: 0.9;
 }
+
+.section {
+    margin-bottom: 30px;
+}
+
+.section-hidden {
+    display: none;
+}
     </style>
 </head>
 <body>
-<div class="sidebar">
-    <h2>Perfume Paradise</h2>
-    <a href="admindashboard.php" class="active">
-        <svg viewBox="0 0 24 24">
-            <path d="M4 6h16M4 12h16M4 18h16"></path>
-        </svg>
-        Dashboard
-    </a>
-    <a href="index.html">
-        <svg viewBox="0 0 24 24">
-            <path d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h3a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3a1 1 0 001-1V10M12 3v3"></path>
-        </svg>
-        Home
-    </a>
-    <a href="manage-users.php">
-    <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="8" r="4"/>
-            <path d="M18 21a6 6 0 00-12 0"/>
-        </svg>
-        Manage Users
-    </a>
-    <a href="manage-sellers.php">
-        <svg viewBox="0 0 24 24">
-            <path d="M16 21v-2a4 4 0 00-4-4H6a4 4 0 00-4 4v2"/>
-            <circle cx="9" cy="7" r="4"/>
-            <path d="M22 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/>
-        </svg>
-        Manage Sellers
-    </a>
-    <a href="manage-categories.php">
-        <svg viewBox="0 0 24 24">
-            <rect x="3" y="3" width="7" height="7"/>
-            <rect x="14" y="3" width="7" height="7"/>
-            <rect x="3" y="14" width="7" height="7"/>
-            <rect x="14" y="14" width="7" height="7"/>
-        </svg>
-        Manage Categories
-    </a>
-    <a href="customer-reviews.php">
-        <svg viewBox="0 0 24 24">
-            <path d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"/>
-        </svg>
-        Customer Reviews
-    </a>
-    <a href="logout.php">
-        <svg viewBox="0 0 24 24">
-            <path d="M9 21H5a2 2 0 01-2-2V5a2 2 0 012-2h4M16 17l5-5-5-5M21 12H9"/>
-        </svg>
-        Logout
-    </a>
-</div>
-
-<div class="main-content">
-    <div class="header">
-        <h1>Welcome Admin!</h1>
+    <div class="sidebar">
+        <h2>Perfume Paradise</h2>
+        <a href="admindashboard.php" class="<?php echo $view == 'dashboard' ? 'active' : ''; ?>">Dashboard</a>
+        <a href="admindashboard.php?view=users" class="<?php echo $view == 'users' ? 'active' : ''; ?>">Manage Users</a>
+        <a href="admindashboard.php?view=sellers" class="<?php echo $view == 'sellers' ? 'active' : ''; ?>">Manage Sellers</a>
+        <a href="manage-categories.php">Manage Categories</a>
+        <a href="customer-reviews.php">Customer Reviews</a>
+        <a href="index.php">Home</a>
+        <a href="logout.php">Logout</a>
     </div>
 
-    <?php if (isset($_GET['success'])) { ?>
-        <div class="alert alert-success">Action completed successfully!</div>
-    <?php } ?>
-    
-    <?php if (isset($_GET['error'])) { ?>
-        <div class="alert alert-error">An error occurred. Please try again.</div>
-    <?php } ?>
+    <div class="main-content">
+        <div class="header">
+            <h1>Welcome Admin!</h1>
+        </div>
 
-    <div class="stats-container">
-        <div class="stat-box">
-            <h3>Total Users</h3>
-            <div class="number"><?php echo $totalUsers; ?></div>
+        <?php if (isset($_GET['success'])) { ?>
+            <div class="alert alert-success">Action completed successfully!</div>
+        <?php } ?>
+        
+        <?php if (isset($_GET['error'])) { ?>
+            <div class="alert alert-error">An error occurred. Please try again.</div>
+        <?php } ?>
+
+        <div class="stats-container">
+            <div class="stat-box">
+                <h3>Total Users</h3>
+                <div class="number"><?php echo $totalUsers; ?></div>
+                <div>Active: <?php echo $activeUsers; ?></div>
+                <div>Inactive: <?php echo $inactiveUsers; ?></div>
+            </div>
+            <div class="stat-box">
+                <h3>Total Sellers</h3>
+                <div class="number"><?php echo $totalSellers; ?></div>
+                <div>Active: <?php echo $activeSellers; ?></div>
+                <div>Inactive: <?php echo $inactiveSellers; ?></div>
+            </div>
         </div>
-        <div class="stat-box">
-            <h3>Total Sellers</h3>
-            <div class="number"><?php echo $totalSellers; ?></div>
+
+        <?php
+        // Determine the display order based on the view parameter
+        $sections = array();
+        
+        // User Management Section
+        ob_start();
+        ?>
+        <div id="users-section" class="section <?php echo ($view != 'users' && $view != 'dashboard') ? 'section-hidden' : ''; ?>">
+            <h2>Manage Users</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    // Reset the result pointer to beginning
+                    mysqli_data_seek($usersResult, 0);
+                    while ($user = mysqli_fetch_assoc($usersResult)) { 
+                    ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($user['username']); ?></td>
+                            <td><?php echo htmlspecialchars($user['email']); ?></td>
+                            <td><?php echo htmlspecialchars($user['phoneno']); ?></td>
+                            <td class="status-<?php echo strtolower($user['verification_status']); ?>">
+                                <?php echo $user['verification_status'] === 'active' ? 'Active' : 'Disabled'; ?>
+                            </td>
+                            <td><?php echo date('Y-m-d H:i', strtotime($user['created_at'])); ?></td>
+                            <td class="actions">
+                                <form method="post" style="display: inline;">
+                                    <input type="hidden" name="id" value="<?php echo $user['Signup_id']; ?>">
+                                    <?php if ($user['verification_status'] === 'disabled') { ?>
+                                        <button type="submit" name="action" value="activate_user" class="btn btn-activate">Activate</button>
+                                    <?php } else { ?>
+                                        <button type="submit" name="action" value="deactivate_user" class="btn btn-deactivate">Deactivate</button>
+                                    <?php } ?>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
         </div>
+        <?php
+        $userSection = ob_get_clean();
+        
+        // Seller Management Section
+        ob_start();
+        ?>
+        <div id="sellers-section" class="section <?php echo ($view != 'sellers' && $view != 'dashboard') ? 'section-hidden' : ''; ?>">
+            <h2>Manage Sellers</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Seller Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Status</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <?php 
+                    // Reset the result pointer to beginning
+                    mysqli_data_seek($sellersResult, 0);
+                    while ($seller = mysqli_fetch_assoc($sellersResult)) { 
+                    ?>
+                        <tr>
+                            <td><?php echo htmlspecialchars($seller['Sellername']); ?></td>
+                            <td><?php echo htmlspecialchars($seller['email']); ?></td>
+                            <td><?php echo htmlspecialchars($seller['phoneno']); ?></td>
+                            <td class="status-<?php echo strtolower($seller['verification_status']); ?>">
+                                <?php echo $seller['verification_status'] === 'active' ? 'Active' : 'Disabled'; ?>
+                            </td>
+                            <td><?php echo date('Y-m-d H:i', strtotime($seller['created_at'])); ?></td>
+                            <td class="actions">
+                                <form method="post" style="display: inline;">
+                                    <input type="hidden" name="id" value="<?php echo $seller['seller_id']; ?>">
+                                    <?php if ($seller['verification_status'] === 'disabled') { ?>
+                                        <button type="submit" name="action" value="activate_seller" class="btn btn-activate">Activate</button>
+                                    <?php } else { ?>
+                                        <button type="submit" name="action" value="deactivate_seller" class="btn btn-deactivate">Deactivate</button>
+                                    <?php } ?>
+                                </form>
+                            </td>
+                        </tr>
+                    <?php } ?>
+                </tbody>
+            </table>
+        </div>
+        <?php
+        $sellerSection = ob_get_clean();
+        
+        // Display the sections in the appropriate order based on view
+        if ($view == 'users') {
+            echo $userSection;
+            echo $sellerSection;
+        } elseif ($view == 'sellers') {
+            echo $sellerSection;
+            echo $userSection;
+        } else {
+            // Default dashboard view
+            echo $userSection;
+            echo $sellerSection;
+        }
+        ?>
     </div>
 
-    <h2>Manage Users</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Status</th>
-                <th>Registration Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($user = mysqli_fetch_assoc($usersResult)) { ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($user['username']); ?></td>
-                    <td><?php echo htmlspecialchars($user['email']); ?></td>
-                    <td><?php echo htmlspecialchars($user['phoneno']); ?></td>
-                    <td class="status-<?php echo strtolower($user['status']); ?>">
-                        <?php echo ucfirst(htmlspecialchars($user['status'])); ?>
-                    </td>
-                    <td><?php echo date('Y-m-d H:i', strtotime($user['created_at'])); ?></td>
-                    <td class="actions">
-                        <form method="post" style="display: inline;">
-                            <input type="hidden" name="id" value="<?php echo $user['Signup_id']; ?>">
-                            <?php if ($user['status'] == 'inactive') { ?>
-                                <button type="submit" name="action" value="activate_user" class="btn btn-activate">Activate</button>
-                            <?php } else { ?>
-                                <button type="submit" name="action" value="deactivate_user" class="btn btn-deactivate">Deactivate</button>
-                            <?php } ?>
-                        </form>
-                    </td>
-                </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-    <br><br>
-
-    <h2>Manage Sellers</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Seller Name</th>
-                <th>Email</th>
-                <th>Phone</th>
-                <th>Status</th>
-                <th>Registration Date</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <?php while ($seller = mysqli_fetch_assoc($sellersResult)) { ?>
-                <tr>
-                    <td><?php echo htmlspecialchars($seller['Sellername']); ?></td>
-                    <td><?php echo htmlspecialchars($seller['email']); ?></td>
-                    <td><?php echo htmlspecialchars($seller['phoneno']); ?></td>
-                    <td class="status-<?php echo strtolower($seller['status']); ?>">
-                        <?php echo ucfirst(htmlspecialchars($seller['status'])); ?>
-                    </td>
-                    <td><?php echo date('Y-m-d H:i', strtotime($seller['created_at'])); ?></td>
-                    <td class="actions">
-                        <form method="post" style="display: inline;">
-                            <input type="hidden" name="id" value="<?php echo $seller['seller_id']; ?>">
-                            <?php if ($seller['status'] == 'inactive') { ?>
-                                <button type="submit" name="action" value="activate_seller" class="btn btn-activate">Activate</button>
-                            <?php } else { ?>
-                                <button type="submit" name="action" value="deactivate_seller" class="btn btn-deactivate">Deactivate</button>
-                            <?php } ?>
-                        </form>
-                    </td>
-                </tr>
-            <?php } ?>
-        </tbody>
-    </table>
-</div>
-
-<script>
-    // Auto-hide alerts after 5 seconds
-    document.addEventListener('DOMContentLoaded', function() {
-        setTimeout(function() {
-            const alerts = document.getElementsByClassName('alert');
-            for(let alert of alerts) {
-                alert.style.display = 'none';
-            }
-        }, 5000);
-    });
-</script>
+    <script>
+        // Auto-hide alerts after 5 seconds
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(function() {
+                const alerts = document.getElementsByClassName('alert');
+                for(let alert of alerts) {
+                    alert.style.display = 'none';
+                }
+            }, 5000);
+        });
+    </script>
 </body>
-</html>
+</html>c

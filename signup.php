@@ -70,6 +70,20 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $errors[] = "Passwords do not match";
         }
 
+        // Check if email or phone already exists
+        if (empty($errors)) {
+            $check_existing = "SELECT COUNT(*) as count FROM tbl_signup WHERE email = ? OR phoneno = ?";
+            $check_stmt = $conn->prepare($check_existing);
+            $check_stmt->bind_param("ss", $email, $number);
+            $check_stmt->execute();
+            $result = $check_stmt->get_result();
+            $row = $result->fetch_assoc();
+            
+            if ($row['count'] > 0) {
+                $errors[] = "Email or phone number already registered";
+            }
+        }
+
         // Prevent multiple admin accounts
         if ($role_type === 'admin') {
             $check_admin_sql = "SELECT COUNT(*) as admin_count FROM tbl_signup WHERE role_type = 'admin'";
@@ -87,44 +101,71 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $conn->begin_transaction();
             
             try {
-                // Call the registerUser function from dbconnect.php
-                $registrationResult = registerUser($conn, $username, $email, $number, $password, $role_type);
+                // Insert into tbl_signup first - removed status field
+                $signup_sql = "INSERT INTO tbl_signup (username, email, phoneno, password, role_type) VALUES (?, ?, ?, ?, ?)";
+                $signup_stmt = $conn->prepare($signup_sql);
+                $hashed_password = password_hash($password, PASSWORD_DEFAULT);
+                $signup_stmt->bind_param("sssss", $username, $email, $number, $hashed_password, $role_type);
                 
-                if ($registrationResult['success']) {
-                    $Signup_id = $registrationResult['signup_id'];
+                if ($signup_stmt->execute()) {
+                    $Signup_id = $conn->insert_id;
                     
-                    // Handle role-specific operations within the same transaction
+                    // Based on role_type, insert into appropriate table
                     if ($role_type === 'user') {
-                        // Insert into tbl_users
+                        // Delete any existing user entries for this Signup_id
+                        $delete_user = "DELETE FROM tbl_users WHERE Signup_id = ?";
+                        $delete_stmt = $conn->prepare($delete_user);
+                        $delete_stmt->bind_param("i", $Signup_id);
+                        $delete_stmt->execute();
+                        
+                        // Insert new user entry
                         $user_sql = "INSERT INTO tbl_users (Signup_id, username, role_type) VALUES (?, ?, ?)";
                         $user_stmt = $conn->prepare($user_sql);
                         $user_stmt->bind_param("iss", $Signup_id, $username, $role_type);
-                        $user_stmt->execute();
-                    }
+                        
+                        if (!$user_stmt->execute()) {
+                            throw new Exception("Failed to create user record");
+                        }
+                    } 
                     elseif ($role_type === 'seller') {
-                        // Insert into tbl_seller
+                        // Delete any existing seller entries for this Signup_id
+                        $delete_seller = "DELETE FROM tbl_seller WHERE Signup_id = ?";
+                        $delete_stmt = $conn->prepare($delete_seller);
+                        $delete_stmt->bind_param("i", $Signup_id);
+                        $delete_stmt->execute();
+                        
+                        // Insert new seller entry
                         $seller_sql = "INSERT INTO tbl_seller (Signup_id, Sellername, role_type, Status) VALUES (?, ?, ?, 'pending')";
                         $seller_stmt = $conn->prepare($seller_sql);
                         $seller_stmt->bind_param("iss", $Signup_id, $username, $role_type);
-                        $seller_stmt->execute();
+                        
+                        if (!$seller_stmt->execute()) {
+                            throw new Exception("Failed to create seller record");
+                        }
                     }
                     
-                    // Commit the transaction
+                    // If we got here, everything worked
                     $conn->commit();
                     $registrationSuccess = true;
+                    
+                    // Optional: Set session variables if needed
+                    $_SESSION['registration_success'] = true;
+                    $_SESSION['username'] = $username;
+                    
                 } else {
-                    // Roll back if registration failed
-                    $conn->rollback();
-                    $registrationError = $registrationResult['message'];
+                    throw new Exception("Failed to create signup record");
                 }
+                
             } catch (Exception $e) {
-                // Roll back on any error
+                // Roll back the transaction on any error
                 $conn->rollback();
-                $registrationError = "Registration failed: " . $e->getMessage();
+                $errors[] = "Registration failed: " . $e->getMessage();
             }
         }
     }
 }
+
+// Rest of your HTML code remains the same...
 ?>
 <!DOCTYPE html>
 <html>

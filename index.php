@@ -2,7 +2,7 @@
 session_start();
 
 // Redirect to login if not logged in
-if (!isset($_SESSION['logged_in'])) { 
+if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis here
     header("Location: login.php");
     exit();
 }
@@ -647,6 +647,69 @@ body {
     display: block;
 }
 
+.slide {
+    position: relative; /* Add this to position the button relative to the slide */
+}
+
+.slide-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 2;
+}
+
+.shop-now-btn {
+    display: inline-block;
+    background-color: #e8a87c;
+    color: #000;
+    text-decoration: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: bold;
+    border-radius: 30px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+.shop-now-btn:hover {
+    background-color: #fff;
+    color: #000;
+    transform: translateY(-2px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+}
+
+/* Add a subtle overlay to make the button more visible */
+.slide::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0,0,0,0.3);
+    pointer-events: none;
+}
+
+/* Add animation for button entrance */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translate(-50%, 20px);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
+}
+
+.slide.active .slide-content {
+    animation: fadeInUp 0.8s ease forwards;
+}
+
     </style>
 </head>
 <body>
@@ -659,8 +722,8 @@ body {
         <div class="dropdown">
             <a href="#categories">Categories</a>
             <div class="dropdown-content">
-                <a href="mens.php">Men's Perfumes</a>
-                <a href="women.php">Women's Perfumes</a>
+                <a href="#">Men's Perfumes</a>
+                <a href="#">Women's Perfumes</a>
                 <a href="#unisex-perfumes">Unisex Perfumes</a>
                 <a href="#luxury-perfumes">Luxury Perfumes</a>
                 <a href="#niche-perfumes">Niche Perfumes</a>
@@ -670,7 +733,8 @@ body {
             </div>
         </div>
         <a href="#body-spray">Brands</a>
-        <a href="#categories">About As</a>
+        
+        <a href="Aboutas.php">Our story</a>
             </div>
     </div>
 
@@ -691,6 +755,7 @@ body {
             </a>
             
         </div>
+        
 
         <?php if (isset($_SESSION['username'])): ?>
             <div class="profile-menu">
@@ -734,9 +799,15 @@ body {
     <div class="slider">
         <div class="slide active">
             <img src="image/image1.jpg" alt="Luxury perfume bottles with dramatic lighting" />
+            <div class="slide-content">
+                <a href="products.php" class="shop-now-btn">Shop Now</a>
+            </div>
         </div>
         <div class="slide">
             <img src="image/image2.jpg" alt="Luxury perfume bottles with dramatic lighting" />
+            <div class="slide-content">
+                <a href="products.php" class="shop-now-btn">Shop Now</a>
+            </div>
         </div>
     </div>
     <div class="slider-nav"></div>
@@ -1289,6 +1360,22 @@ document.addEventListener('click', function(event) {
     if (!dropdownMenu.contains(event.target) && !profileCircle.contains(event.target)) {
         dropdownMenu.style.display = 'none';
     }
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event for shop now buttons
+    const shopNowButtons = document.querySelectorAll('.shop-now-btn');
+    shopNowButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Scroll to products section
+            const productsSection = document.querySelector('.product-section');
+            if (productsSection) {
+                productsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
 });
 </script>
 

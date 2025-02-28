@@ -1,3 +1,4 @@
+
 <?php
 session_start();
 
@@ -8,60 +9,43 @@ if (!isset($_SESSION['logged_in'])) {
 }
 
 require_once('dbconnect.php');
-$database_name = "perfume_store";
+$database_name = "perfumes";
 mysqli_select_db($conn, $database_name);
-
-// Add new columns to tbl_signup if they don't exist
-$alterQueries = [
-    "ALTER TABLE tbl_signup ADD COLUMN IF NOT EXISTS address VARCHAR(255)",
-    "ALTER TABLE tbl_signup ADD COLUMN IF NOT EXISTS city VARCHAR(100)",
-    "ALTER TABLE tbl_signup ADD COLUMN IF NOT EXISTS district VARCHAR(100)"
-];
-
-foreach ($alterQueries as $query) {
-    if (!$conn->query($query)) {
-        error_log("Error adding column: " . $conn->error);
-    }
-}
 
 $user_id = $_SESSION['user_id'];
 $message = '';
 $messageType = '';
 
-// Handle account deletion
+// Handle account disabling
 if (isset($_POST['delete_account'])) {
-    try {
-        $conn->begin_transaction();
-        
-        // Delete from tbl_users first (if it exists)
-        $deleteUser = $conn->prepare("DELETE FROM tbl_users WHERE Signup_id = ?");
-        $deleteUser->bind_param("i", $user_id);
-        $deleteUser->execute();
-        
-        // Then delete from tbl_signup
-        $deleteSignup = $conn->prepare("DELETE FROM tbl_signup WHERE Signup_id = ?");
-        $deleteSignup->bind_param("i", $user_id);
-        
-        if ($deleteSignup->execute()) {
-            $conn->commit();
-            session_destroy();
-            header("Location: login.php?message=account_deleted");
-            exit();
-        } else {
-            throw new Exception("Error deleting account");
-        }
-    } catch (Exception $e) {
-        $conn->rollback();
-        $message = "Error deleting account: " . $e->getMessage();
+    $result = disableUserAccount($conn, $user_id);
+    if ($result['success']) {
+        session_destroy();
+        header("Location: login.php?message=account_disabled");
+        exit();
+    } else {
+        $message = $result['message'];
+        $messageType = 'error';
+    }
+}
+
+// Alter tbl_signup to add business_name column if it doesn't exist
+$check_business_name = "SHOW COLUMNS FROM tbl_signup LIKE 'business_name'";
+$result = $conn->query($check_business_name);
+if ($result->num_rows == 0) {
+    $alter_query = "ALTER TABLE tbl_signup ADD COLUMN business_name VARCHAR(100)";
+    if (!$conn->query($alter_query)) {
+        $message = "Error adding business_name column: " . $conn->error;
         $messageType = 'error';
     }
 }
 
 // Fetch user data function
 function getUserData($conn, $user_id) {
-    $stmt = $conn->prepare("SELECT s.*, u.username as user_username 
+    $stmt = $conn->prepare("SELECT s.*, u.username as user_username, sel.Sellername as business_name 
             FROM tbl_signup s 
             LEFT JOIN tbl_users u ON s.Signup_id = u.Signup_id 
+            LEFT JOIN tbl_seller sel ON s.Signup_id = sel.Signup_id 
             WHERE s.Signup_id = ?");
     
     if (!$stmt) {
@@ -80,23 +64,17 @@ function getUserData($conn, $user_id) {
     return $result->fetch_assoc();
 }
 
-// Validate input function
-function validateInput($data) {
-    $errors = [];
-    
-    if (empty($data['username']) || strlen($data['username']) < 3) {
-        $errors[] = "Username must be at least 3 characters long";
+// Fetch user role
+function getUserRole($conn, $user_id) {
+    $stmt = $conn->prepare("SELECT role_type FROM tbl_signup WHERE Signup_id = ?");
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    if ($result->num_rows > 0) {
+        $row = $result->fetch_assoc();
+        return $row['role_type'];
     }
-    
-    if (!filter_var($data['email'], FILTER_VALIDATE_EMAIL)) {
-        $errors[] = "Invalid email format";
-    }
-    
-    if (!preg_match("/^\d{10}$/", $data['phone'])) {
-        $errors[] = "Phone number must be exactly 10 digits";
-    }
-    
-    return $errors;
+    return null;
 }
 
 // Handle form submission
@@ -114,68 +92,59 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $new_password = trim($_POST['new_password']);
     $confirm_password = trim($_POST['confirm_password']);
     
-    // Validate input
-    $validationErrors = validateInput($postData);
-    
-    if (empty($validationErrors)) {
-        try {
-            $conn->begin_transaction();
-            
-            // Check for duplicate username
-            $checkUsername = $conn->prepare("SELECT Signup_id FROM tbl_signup WHERE username = ? AND Signup_id != ?");
-            $checkUsername->bind_param("si", $postData['username'], $user_id);
-            $checkUsername->execute();
-            if ($checkUsername->get_result()->num_rows > 0) {
-                throw new Exception("Username already exists");
-            }
-            
-            // Update signup table
-            $stmt = $conn->prepare("UPDATE tbl_signup SET 
-                username = ?, 
-                email = ?, 
-                Phoneno = ?,
-                address = ?,
-                city = ?,
-                district = ?
-                WHERE Signup_id = ?");
-            
-            $stmt->bind_param("ssssssi", 
-                $postData['username'],
-                $postData['email'],
-                $postData['phone'],
-                $postData['address'],
-                $postData['city'],
-                $postData['district'],
-                $user_id
-            );
-            
-            if (!$stmt->execute()) {
-                throw new Exception("Error updating profile");
-            }
-            
-            // Update password if provided
-            if (!empty($new_password) && $new_password === $confirm_password) {
-                $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
-                $updatePassword = $conn->prepare("UPDATE tbl_signup SET password = ? WHERE Signup_id = ?");
-                $updatePassword->bind_param("si", $hashed_password, $user_id);
-                
-                if (!$updatePassword->execute()) {
-                    throw new Exception("Error updating password");
-                }
-            }
-            
-            $conn->commit();
-            $_SESSION['username'] = $postData['username'];
-            $message = "Profile updated successfully!";
-            $messageType = 'success';
-            
-        } catch (Exception $e) {
-            $conn->rollback();
-            $message = "Error updating profile: " . $e->getMessage();
-            $messageType = 'error';
+    try {
+        $conn->begin_transaction();
+        
+        // Update signup table
+        $stmt = $conn->prepare("UPDATE tbl_signup SET 
+            Phoneno = ?,
+            address = ?,
+            city = ?,
+            district = ?
+            WHERE Signup_id = ?");
+        
+        $stmt->bind_param("ssssi", 
+            $postData['phone'],
+            $postData['address'],
+            $postData['city'],
+            $postData['district'],
+            $user_id
+        );
+        
+        if (!$stmt->execute()) {
+            throw new Exception("Error updating profile");
         }
-    } else {
-        $message = "Please correct the following errors: " . implode(", ", $validationErrors);
+        
+        // Update password if provided
+        if (!empty($new_password) && $new_password === $confirm_password) {
+            $hashed_password = password_hash($new_password, PASSWORD_DEFAULT);
+            $updatePassword = $conn->prepare("UPDATE tbl_signup SET password = ? WHERE Signup_id = ?");
+            $updatePassword->bind_param("si", $hashed_password, $user_id);
+            
+            if (!$updatePassword->execute()) {
+                throw new Exception("Error updating password");
+            }
+        }
+        
+        // If user is a seller, update business name
+        if ($_SESSION['role'] === 'seller') {
+            $business_name = trim($_POST['business_name']);
+            $updateSeller = $conn->prepare("UPDATE tbl_signup SET business_name = ? WHERE Signup_id = ?");
+            $updateSeller->bind_param("si", $business_name, $user_id);
+            
+            if (!$updateSeller->execute()) {
+                throw new Exception("Error updating business name");
+            }
+        }
+        
+        $conn->commit();
+        $_SESSION['username'] = $postData['username'];
+        $message = "Profile updated successfully!";
+        $messageType = 'success';
+        
+    } catch (Exception $e) {
+        $conn->rollback();
+        $message = "Error updating profile: " . $e->getMessage();
         $messageType = 'error';
     }
 }
@@ -186,6 +155,10 @@ if (!$userData) {
     $message = "Error loading user data. Please try again later.";
     $messageType = 'error';
 }
+
+// Fetch user role
+$userRole = getUserRole($conn, $user_id);
+$_SESSION['role'] = $userRole;
 
 // Array of districts
 $districts = [
@@ -213,7 +186,7 @@ $districts = [
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Edit Profile</title>
     <style>
-        * {
+          * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
@@ -439,6 +412,12 @@ $districts = [
                 grid-template-columns: 1fr;
             }
         }
+
+        .field-error {
+            color: #dc3545;
+            font-size: 12px;
+            margin-top: 5px;
+        }
     </style>
 </head>
 <body>
@@ -448,7 +427,7 @@ $districts = [
             <ul class="nav-links">
                 <li><a href="#" class="active"><span>Edit Profile</span></a></li>
                 <li><a href="#"><span>Settings</span></a></li>
-                <li><a href="index.php"><span>Home</span></a></li>
+                <li><a href="<?php echo ($_SESSION['role'] === 'seller') ? 'seller-dashboard.php' : 'index.php'; ?>"><span>Home</span></a></li>
                 <li><a href="logout.php"><span>Logout</span></a></li>
             </ul>
         </div>
@@ -467,38 +446,53 @@ $districts = [
                         <label>Username</label>
                         <input type="text" name="username" 
                                value="<?php echo htmlspecialchars($userData['username'] ?? ''); ?>" 
-                               required minlength="3">
+                               readonly>
                     </div>
 
                     <div class="form-group">
                         <label>Email</label>
                         <input type="email" name="email" 
                                value="<?php echo htmlspecialchars($userData['email'] ?? ''); ?>" 
-                               required>
+                               readonly>
                     </div>
 
                     <div class="form-group">
                         <label>Mobile</label>
                         <input type="tel" name="phone" 
                                value="<?php echo htmlspecialchars($userData['Phoneno'] ?? ''); ?>" 
-                               required pattern="^\d{10}$">
+                               required>
+                        <div id="phone-error" class="field-error"></div>
                     </div>
+
+                    <?php if ($userRole === 'seller'): ?>
+                        <div class="form-group">
+                            <label>Business Name</label>
+                            <input type="text" name="business_name" 
+                                   value="<?php echo htmlspecialchars($userData['business_name'] ?? ''); ?>" 
+                                   required>
+                            <div id="business-name-error" class="field-error"></div>
+                        </div>
+                    <?php endif; ?>
 
                     <div class="form-group">
                         <label>Address</label>
                         <input type="text" name="address" 
-                               value="<?php echo htmlspecialchars($userData['address'] ?? ''); ?>">
+                               value="<?php echo htmlspecialchars($userData['address'] ?? ''); ?>" 
+                               required>
+                        <div id="address-error" class="field-error"></div>
                     </div>
 
                     <div class="form-group">
                         <label>City</label>
                         <input type="text" name="city" 
-                               value="<?php echo htmlspecialchars($userData['city'] ?? ''); ?>">
+                               value="<?php echo htmlspecialchars($userData['city'] ?? ''); ?>" 
+                               required>
+                        <div id="city-error" class="field-error"></div>
                     </div>
 
                     <div class="form-group">
                         <label>District</label>
-                        <select name="district">
+                        <select name="district" required>
                             <option value="">Select District</option>
                             <?php foreach ($districts as $district): ?>
                                 <option value="<?php echo htmlspecialchars($district); ?>"
@@ -507,6 +501,7 @@ $districts = [
                                 </option>
                             <?php endforeach; ?>
                         </select>
+                        <div id="district-error" class="field-error"></div>
                     </div>
 
                     <div class="form-group">
@@ -531,7 +526,7 @@ $districts = [
     <!-- Delete Confirmation Modal -->
     <div id="deleteModal" class="modal">
         <div class="modal-content">
-            <h2>Confirm Account Deletion</h2>
+            <h2 style="text-align: center;">Confirmation</h2><br><br>
             <p>Are you sure you want to delete your account? This action cannot be undone.</p>
             <div class="modal-buttons">
                 <button class="modal-cancel" onclick="hideDeleteConfirmation()">Cancel</button>
@@ -543,81 +538,146 @@ $districts = [
     </div>
 
     <script>
-        // Form validation
-        const form = document.getElementById('profileForm');
-        const passwordInput = document.querySelector('input[name="new_password"]');
-        const confirmPasswordInput = document.querySelector('input[name="confirm_password"]');
+    // Function to show "Field is required" message on focus
+    function showRequiredMessage(inputField, errorElement) {
+        errorElement.textContent = 'Field is required';
+    }
 
-        form.addEventListener('submit', function(e) {
-            // Reset previous error styles
-            const inputs = form.querySelectorAll('input');
-            inputs.forEach(input => input.style.borderColor = '#ddd');
+    // Add onfocus event listeners for required fields
+    const addressInput = document.querySelector('input[name="address"]');
+    const cityInput = document.querySelector('input[name="city"]');
+    const districtInput = document.querySelector('select[name="district"]');
 
-            // Validate required fields
-            let hasError = false;
-            
-            if (passwordInput.value || confirmPasswordInput.value) {
-                if (passwordInput.value !== confirmPasswordInput.value) {
-                    passwordInput.style.borderColor = '#dc3545';
-                    confirmPasswordInput.style.borderColor = '#dc3545';
-                    alert('Passwords do not match!');
-                    hasError = true;
-                }
-            }
+    const addressError = document.getElementById('address-error');
+    const cityError = document.getElementById('city-error');
+    const districtError = document.getElementById('district-error');
 
-            const phoneInput = document.querySelector('input[name="phone"]');
-            if (!/^\d{10}$/.test(phoneInput.value)) {
-                phoneInput.style.borderColor = '#dc3545';
-                alert('Phone number must be exactly 10 digits!');
-                hasError = true;
-            }
+    if (addressInput) {
+        addressInput.addEventListener('focus', function() {
+            showRequiredMessage(addressInput, addressError);
+        });
+    }
 
-            if (hasError) {
-                e.preventDefault();
-            }
+    if (cityInput) {
+        cityInput.addEventListener('focus', function() {
+            showRequiredMessage(cityInput, cityError);
+        });
+    }
+
+    if (districtInput) {
+        districtInput.addEventListener('focus', function() {
+            showRequiredMessage(districtInput, districtError);
+        });
+    }
+
+    // Phone number validation
+    const phoneInput = document.querySelector('input[name="phone"]');
+    const phoneError = document.getElementById('phone-error');
+
+    if (phoneInput) {
+        phoneInput.addEventListener('focus', function() {
+            phoneError.textContent = 'Phone number must be 10 digits, not start with 0-5, and not be all zeros or start with any digit followed by zeros.';
         });
 
-        // Real-time password matching validation
-        function validatePasswords() {
-            if (passwordInput.value || confirmPasswordInput.value) {
-                if (passwordInput.value === confirmPasswordInput.value) {
-                    passwordInput.style.borderColor = '#28a745';
-                    confirmPasswordInput.style.borderColor = '#28a745';
-                } else {
-                    passwordInput.style.borderColor = '#dc3545';
-                    confirmPasswordInput.style.borderColor = '#dc3545';
-                }
+        phoneInput.addEventListener('input', function() {
+            const phoneValue = this.value;
+
+            // Validate phone number
+            const isValid = /^[6-9]\d{9}$/.test(phoneValue) && 
+                           !/^(\d)\0{9}$/.test(phoneValue) && 
+                           phoneValue !== '0000000000';
+
+            if (!isValid) {
+                this.style.borderColor = '#dc3545';
+                phoneError.textContent = 'Invalid phone number.';
             } else {
-                passwordInput.style.borderColor = '#ddd';
-                confirmPasswordInput.style.borderColor = '#ddd';
+                this.style.borderColor = '#28a745';
+                phoneError.textContent = '';
             }
-        }
+        });
+    }
 
-        passwordInput.addEventListener('input', validatePasswords);
-        confirmPasswordInput.addEventListener('input', validatePasswords);
+    // Business Name Validation
+    const businessNameInput = document.querySelector('input[name="business_name"]');
+    const businessNameError = document.getElementById('business-name-error');
 
-        // Phone number formatting
-        const phoneInput = document.querySelector('input[name="phone"]');
-        phoneInput.addEventListener('input', function(e) {
-            this.value = this.value.replace(/\D/g, '').substring(0, 10);
+    if (businessNameInput) {
+        businessNameInput.addEventListener('focus', function() {
+            businessNameError.textContent = 'Only letters and whitespaces are allowed.';
         });
 
-        // Delete account modal functions
-        function showDeleteConfirmation() {
-            document.getElementById('deleteModal').style.display = 'block';
-        }
+        businessNameInput.addEventListener('input', function() {
+            const businessNameValue = this.value;
 
-        function hideDeleteConfirmation() {
-            document.getElementById('deleteModal').style.display = 'none';
-        }
+            // Validate business name
+            const isValid = /^[A-Za-z\s]+$/.test(businessNameValue);
 
-        // Close modal when clicking outside
-        window.onclick = function(event) {
-            const modal = document.getElementById('deleteModal');
-            if (event.target == modal) {
-                modal.style.display = 'none';
+            if (!isValid) {
+                this.style.borderColor = '#dc3545';
+                businessNameError.textContent = 'Invalid business name. Only letters and whitespaces are allowed.';
+            } else {
+                this.style.borderColor = '#28a745';
+                businessNameError.textContent = '';
             }
+        });
+    }
+
+    // Prevent form submission if validation fails
+    const form = document.getElementById('profileForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+
+            // Phone number validation
+            if (phoneInput) {
+                const phoneValue = phoneInput.value;
+                const isPhoneValid = /^[6-9]\d{9}$/.test(phoneValue) && 
+                                   !/^(\d)\0{9}$/.test(phoneValue) && 
+                                   phoneValue !== '0000000000';
+
+                if (!isPhoneValid) {
+                    isValid = false;
+                    phoneError.textContent = 'Invalid phone number.';
+                    phoneInput.style.borderColor = '#dc3545';
+                }
+            }
+
+            // Business name validation
+            if (businessNameInput && businessNameInput.value) {
+                const businessNameValue = businessNameInput.value;
+                const isBusinessNameValid = /^[A-Za-z\s]+$/.test(businessNameValue);
+
+                if (!isBusinessNameValid) {
+                    isValid = false;
+                    businessNameError.textContent = 'Invalid business name. Only letters and whitespaces are allowed.';
+                    businessNameInput.style.borderColor = '#dc3545';
+                }
+            }
+
+            // Prevent form submission if validation fails
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fix the errors before submitting the form.');
+            }
+        });
+    }
+
+    // Delete account modal functions
+    function showDeleteConfirmation() {
+        document.getElementById('deleteModal').style.display = 'block';
+    }
+
+    function hideDeleteConfirmation() {
+        document.getElementById('deleteModal').style.display = 'none';
+    }
+
+    // Close modal when clicking outside
+    window.onclick = function(event) {
+        const modal = document.getElementById('deleteModal');
+        if (event.target == modal) {
+            modal.style.display = 'none';
         }
-    </script>
+    }
+</script>
 </body>
 </html>

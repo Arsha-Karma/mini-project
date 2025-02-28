@@ -1,6 +1,14 @@
 <?php
-// seller-dashboard.php
+// Start the session
 session_start();
+
+// Regenerate session ID to prevent session fixation
+if (!isset($_SESSION['initiated'])) {
+    session_regenerate_id(true);
+    $_SESSION['initiated'] = true;
+}
+
+// Include database connection
 require_once 'dbconnect.php';
 
 // Add necessary columns if they don't exist
@@ -27,9 +35,21 @@ if (!isset($_SESSION['logged_in']) || $_SESSION['role'] !== 'seller') {
     exit();
 }
 
-$seller_id = $_SESSION['user_id'];
+// Check for session timeout (e.g., 30 minutes)
+$inactive = 1800; // 30 minutes in seconds
+if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $inactive)) {
+    // Log out the user
+    session_unset();
+    session_destroy();
+    header('Location: login.php');
+    exit();
+}
+
+// Update last activity time
+$_SESSION['last_activity'] = time();
 
 // Get seller information
+$seller_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("SELECT * FROM tbl_seller WHERE Signup_id = ?");
 $stmt->bind_param("i", $seller_id);
 $stmt->execute();
@@ -78,36 +98,213 @@ $reviews = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <title>Seller Dashboard - Perfume Paradise</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f7fc;
+            color: #333;
+        }
+
         .sidebar {
-            height: 100vh;
             width: 250px;
+            background-color: #2d2a4b;
+            height: 100vh;
             position: fixed;
-            top: 0;
-            left: 0;
-            background-color: #343a40;
-            padding-top: 20px;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
         }
+
+        .sidebar h2 {
+            text-align: center;
+            color: #fff;
+            padding: 20px;
+            background-color: #2d2a4b;
+            margin: 0;
+        }
+
         .sidebar a {
-            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            color: #fff;
+            padding: 15px 20px;
             text-decoration: none;
-            font-size: 18px;
-            color: white;
-            display: block;
+            border-bottom: 1px solid #3a375f;
+            transition: all 0.3s ease;
         }
-        .sidebar a:hover {
-            background-color: #495057;
+
+        .sidebar a svg {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
         }
+
+        .sidebar a:hover, .sidebar .active {
+            background-color: #3a375f;
+            color: #fff;
+        }
+
         .main-content {
             margin-left: 250px;
             padding: 20px;
+            width: calc(100% - 250px);
+            background-color: #f4f7fc;
         }
+
+        .header {
+            background-color: #fff;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #2d2a4b;
+            margin: 0;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-box {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .stat-box h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.1em;
+            color: #666;
+        }
+
+        .stat-box .number {
+            font-size: 2em;
+            font-weight: bold;
+            color: #2d2a4b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background-color: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+
+        th {
+            background-color: #2d2a4b;
+            color: #fff;
+            font-weight: bold;
+        }
+
+        tr:hover {
+            background-color: #f8f9ff;
+        }
+
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9em;
+        }
+        
+
+        .btn-activate {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .btn-deactivate {
+            background-color: #ff9800;
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .status-active {
+            color: #4CAF50;
+        }
+
+        .status-inactive {
+            color: #ff9800;
+        }
+
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+
+        .alert-success {
+            background-color: #4CAF50;
+            color: white;
+        }
+
+        .alert-error {
+            background-color: #f44336;
+            color: white;
+        }
+
+        .logout-btn {
+            background-color: #f44336;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            transition: opacity 0.3s ease;
+        }
+
+        .logout-btn:hover {
+            opacity: 0.9;
+        }
+        thead {
+    background-color: #2d2a4b; /* Dark blue background */
+}
+
+th {
+    color: white; /* White text color */
+    font-weight: bold;
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eee;
+}
     </style>
 </head>
 <body>
-    <div class="sidebar">
+    <div class="sidebar"><br>
+    <h3 style="color: white;">Perfume Paradise</h3>
         <a href="seller-dashboard.php">Dashboard</a>
-        <a href="home.php">Home</a>
-        <a href="edit_profile.php">Edit Profile</a>
+        <a href="index.php">Home</a>
+        <a href="profile.php">Edit Profile</a>
         <a href="products.php">Products</a>
         <a href="sales.php">Sales</a>
         <a href="reviews.php">Customer Reviews</a>
@@ -115,61 +312,11 @@ $reviews = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     </div>
 
     <div class="main-content">
+        <div class="header">
+            <h1>Welcome Seller</h1>
+        </div>
+
         <div class="container mt-4">
-            <div class="row">
-                <!-- Seller Profile -->
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Seller Profile</h5>
-                            <p>Name: <?php echo htmlspecialchars($seller_info['Sellername']); ?></p>
-                            <p>Email: <?php echo htmlspecialchars($seller_info['email']); ?></p>
-                            <p>Phone: <?php echo htmlspecialchars($seller_info['phoneno']); ?></p>
-                            <a href="edit_profile.php" class="btn btn-primary">Edit Profile</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Product Management -->
-                <div class="col-md-8">
-                    <div class="card">
-                        <div class="card-body">
-                            <h5 class="card-title">Product Management</h5>
-                            <a href="add_product.php" class="btn btn-success mb-3">Add New Product</a>
-                            
-                            <div class="table-responsive">
-                                <table class="table">
-                                    <thead>
-                                        <tr>
-                                            <th>Name</th>
-                                            <th>Price</th>
-                                            <th>Stock</th>
-                                            <th>Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php foreach ($products as $product): ?>
-                                        <tr>
-                                            <td><?php echo htmlspecialchars($product['name']); ?></td>
-                                            <td>₹<?php echo htmlspecialchars($product['price']); ?></td>
-                                            <td><?php echo htmlspecialchars($product['Stock_quantity']); ?></td>
-                                            <td>
-                                                <a href="edit_product.php?id=<?php echo $product['product_id']; ?>" 
-                                                   class="btn btn-sm btn-primary">Edit</a>
-                                                <a href="delete_product.php?id=<?php echo $product['product_id']; ?>" 
-                                                   class="btn btn-sm btn-danger" 
-                                                   onclick="return confirm('Are you sure?')">Delete</a>
-                                            </td>
-                                        </tr>
-                                        <?php endforeach; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             <!-- Sales Data -->
             <div class="row mt-4">
                 <div class="col-12">

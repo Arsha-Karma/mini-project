@@ -100,6 +100,7 @@ if ($conn->query($sql) === TRUE) {
         $conn->query($alter_seller);
     }
 
+<<<<<<< HEAD
     // Add new columns to tbl_seller
     $alter_seller_table = "ALTER TABLE tbl_seller 
         ADD COLUMN IF NOT EXISTS id_type VARCHAR(50),
@@ -108,6 +109,8 @@ if ($conn->query($sql) === TRUE) {
         ADD COLUMN IF NOT EXISTS documents_uploaded ENUM('pending', 'completed') DEFAULT 'pending'";
     $conn->query($alter_seller_table);
 
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     // Create tbl_categories table
     $sql_categories = "CREATE TABLE IF NOT EXISTS tbl_categories (
         category_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -204,6 +207,7 @@ if ($conn->query($sql) === TRUE) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     $conn->query($sql_reviews);
+<<<<<<< HEAD
 
     // Create verification_documents table if not exists
     $create_verification_table = "CREATE TABLE IF NOT EXISTS seller_verification_docs (
@@ -247,6 +251,8 @@ if ($conn->query($sql) === TRUE) {
         FOREIGN KEY (brand_id) REFERENCES tbl_brand(brand_id)
     )";
     $conn->query($create_product);
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 }
 
 // Helper Functions

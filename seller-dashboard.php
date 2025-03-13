@@ -88,6 +88,7 @@ $stmt = $conn->prepare("
 $stmt->bind_param("i", $seller_id);
 $stmt->execute();
 $reviews = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+<<<<<<< HEAD
 
 // Check verification status
 $stmt = $conn->prepare("
@@ -107,6 +108,8 @@ if ($show_success) {
 
 // Show verification form for unverified sellers
 $show_verification_popup = ($result['documents_uploaded'] !== 'completed');
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 ?>
 
 <!DOCTYPE html>
@@ -127,10 +130,17 @@ $show_verification_popup = ($result['documents_uploaded'] !== 'completed');
 
         .sidebar {
             width: 250px;
+<<<<<<< HEAD
             background-color: #1a1a1a !important;
             height: 100vh;
             position: fixed;
             color: white;
+=======
+            background-color: #2d2a4b;
+            height: 100vh;
+            position: fixed;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .sidebar h2 {
@@ -142,6 +152,7 @@ $show_verification_popup = ($result['documents_uploaded'] !== 'completed');
         }
 
         .sidebar a {
+<<<<<<< HEAD
             color: #ffffff;
             padding: 15px 20px;
             text-decoration: none;
@@ -152,6 +163,29 @@ $show_verification_popup = ($result['documents_uploaded'] !== 'completed');
         .sidebar a:hover, .sidebar .active {
             background-color: #1a1a1a;
             color: #ffffff;
+=======
+            display: flex;
+            align-items: center;
+            color: #fff;
+            padding: 15px 20px;
+            text-decoration: none;
+            border-bottom: 1px solid #3a375f;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar a svg {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            stroke: currentColor;
+            stroke-width: 2;
+            fill: none;
+        }
+
+        .sidebar a:hover, .sidebar .active {
+            background-color: #3a375f;
+            color: #fff;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .main-content {
@@ -162,7 +196,11 @@ $show_verification_popup = ($result['documents_uploaded'] !== 'completed');
         }
 
         .header {
+<<<<<<< HEAD
             background-color: #f4f7fc;
+=======
+            background-color: #fff;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             padding: 15px;
             display: flex;
             justify-content: space-between;
@@ -305,6 +343,7 @@ th {
     text-align: left;
     border-bottom: 1px solid #eee;
 }
+<<<<<<< HEAD
 
 .nav-link {
     color: white !important;
@@ -567,11 +606,17 @@ th {
     from { opacity: 0; transform: translateY(-20px); }
     to { opacity: 1; transform: translateY(0); }
 }
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>
     <div class="sidebar"><br>
+<<<<<<< HEAD
    <h4 style="color: white; text-align: center;">Perfume Paradise</h4>
+=======
+    <h3 style="color: white;">Perfume Paradise</h3>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         <a href="seller-dashboard.php">Dashboard</a>
         <a href="index.php">Home</a>
         <a href="profile.php">Edit Profile</a>
@@ -583,7 +628,11 @@ th {
 
     <div class="main-content">
         <div class="header">
+<<<<<<< HEAD
             <h1 style="color: #000000;" >Welcome Seller</h1>
+=======
+            <h1>Welcome Seller</h1>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         </div>
 
         <div class="container mt-4">
@@ -649,6 +698,7 @@ th {
         </div>
     </div>
 
+<<<<<<< HEAD
     <?php if ($show_verification_popup): ?>
         <div id="verificationPopup" class="verification-popup" style="display: flex;">
             <div class="popup-content">
@@ -800,5 +850,8 @@ th {
         }, 5000);
     }
     </script>
+=======
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 </body>
 </html>

@@ -10,7 +10,10 @@ if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis h
 <!DOCTYPE html>
 <html lang="en">
 <head><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+<<<<<<< HEAD
 <script src="main.js" defer type="module"></script>
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     <meta charset="UTF-8">
     <title>Perfume Paradise</title>
     <style>
@@ -801,13 +804,21 @@ body {
         <div class="slide active">
             <img src="image/image1.jpg" alt="Luxury perfume bottles with dramatic lighting" />
             <div class="slide-content">
+<<<<<<< HEAD
                 <a href="productslist.php" class="shop-now-btn">Shop Now</a>
+=======
+                <a href="products.php" class="shop-now-btn">Shop Now</a>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             </div>
         </div>
         <div class="slide">
             <img src="image/image2.jpg" alt="Luxury perfume bottles with dramatic lighting" />
             <div class="slide-content">
+<<<<<<< HEAD
                 <a href="productslist.php" class="shop-now-btn">Shop Now</a>
+=======
+                <a href="products.php" class="shop-now-btn">Shop Now</a>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             </div>
         </div>
     </div>
@@ -1366,9 +1377,23 @@ document.addEventListener('click', function(event) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+<<<<<<< HEAD
     // Remove the old shop now button click handler
     // const shopNowButtons = document.querySelectorAll('.shop-now-btn');
     // shopNowButtons.forEach(button => { ... });
+=======
+    // Add click event for shop now buttons
+    const shopNowButtons = document.querySelectorAll('.shop-now-btn');
+    shopNowButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            // Scroll to products section
+            const productsSection = document.querySelector('.product-section');
+            if (productsSection) {
+                productsSection.scrollIntoView({ behavior: 'smooth' });
+            }
+        });
+    });
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 });
 </script>
 

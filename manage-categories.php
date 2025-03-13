@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 <?php
 session_start();
 
@@ -393,6 +397,7 @@ $seasons = array("Spring", "Summer", "Fall", "Winter", "All Seasons");
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Category Management - Perfume Paradise</title>
     <style>
+<<<<<<< HEAD
         body {
             background-color: #f5f5f5;
         }
@@ -454,6 +459,8 @@ $seasons = array("Spring", "Summer", "Fall", "Winter", "All Seasons");
             color: white;
         }
 
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         .alert-modal {
     text-align: center;
     padding: 30px;
@@ -641,6 +648,49 @@ $seasons = array("Spring", "Summer", "Fall", "Winter", "All Seasons");
     color: #333;
 }
 
+<<<<<<< HEAD
+=======
+.sidebar {
+    width: 250px;
+    background-color: #2d2a4b;
+    height: 100vh;
+    position: fixed;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar h2 {
+    text-align: center;
+    color: #fff;
+    padding: 20px;
+    background-color: #2d2a4b;
+    margin: 0;
+}
+
+.sidebar a {
+    display: flex;
+    align-items: center;
+    color: #fff;
+    padding: 15px 20px;
+    text-decoration: none;
+    border-bottom: 1px solid #3a375f;
+    transition: all 0.3s ease;
+}
+
+.sidebar a svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+.sidebar a:hover, .sidebar .active {
+    background-color: #3a375f;
+    color: #fff;
+}
+
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 .main-content {
     margin-left: 250px;
     padding: 20px;
@@ -835,6 +885,7 @@ tr:hover {
         .form-group select:invalid {
             border-color: #f44336;
         }
+<<<<<<< HEAD
 
         /* Header and Title Sections */
         .header-title,
@@ -880,6 +931,8 @@ tr:hover {
             padding: 20px;
             margin: 0;
         }
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>

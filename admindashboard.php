@@ -195,7 +195,11 @@ if (isset($_POST['action']) && isset($_POST['id'])) {
 $usersQuery = "
     SELECT 
         u.username,
+<<<<<<< HEAD
         COALESCE(u.email, s.email) as email,
+=======
+        u.email,
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         COALESCE(u.phoneno, s.Phoneno) as phoneno,
         u.verification_status,
         u.role_type,
@@ -214,7 +218,11 @@ $sellersQuery = "
     SELECT 
         sl.seller_id,
         sl.Sellername,
+<<<<<<< HEAD
         COALESCE(sl.email, s.email) as email,
+=======
+        sl.email,
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         COALESCE(sl.phoneno, s.Phoneno) as phoneno,
         sl.verification_status,
         sl.role_type,
@@ -245,10 +253,17 @@ $sellersResult = mysqli_query($conn, $sellersQuery);
 
 .sidebar {
     width: 250px;
+<<<<<<< HEAD
     background-color: #1a1a1a !important;  /* Dark black for sidebar */
     height: 100vh;
     position: fixed;
     color: #ffffff;
+=======
+    background-color: #2d2a4b;
+    height: 100vh;
+    position: fixed;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 }
 
 .sidebar h2 {
@@ -260,6 +275,7 @@ $sellersResult = mysqli_query($conn, $sellersQuery);
 }
 
 .sidebar a {
+<<<<<<< HEAD
     color: #ffffff;
     padding: 15px 20px;
     text-decoration: none;
@@ -270,6 +286,29 @@ $sellersResult = mysqli_query($conn, $sellersQuery);
 .sidebar a:hover, .sidebar .active {
     background-color: #1a1a1a;
     color: #ffffff;
+=======
+    display: flex;
+    align-items: center;
+    color: #fff;
+    padding: 15px 20px;
+    text-decoration: none;
+    border-bottom: 1px solid #3a375f;
+    transition: all 0.3s ease;
+}
+
+.sidebar a svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 10px;
+    stroke: currentColor;
+    stroke-width: 2;
+    fill: none;
+}
+
+.sidebar a:hover, .sidebar .active {
+    background-color: #3a375f;
+    color: #fff;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 }
 
 .main-content {
@@ -339,8 +378,13 @@ th, td {
 }
 
 th {
+<<<<<<< HEAD
     background-color: #1a1a1a !important;
     color: white;
+=======
+    background-color: #2d2a4b;
+    color: #fff;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     font-weight: bold;
 }
 
@@ -363,7 +407,11 @@ tr:hover {
 }
 
 .btn-activate {
+<<<<<<< HEAD
     background-color: #28a745;
+=======
+    background-color: #4CAF50;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     color: white;
 }
 
@@ -377,11 +425,19 @@ tr:hover {
 }
 
 .status-active {
+<<<<<<< HEAD
     color: #28a745;
 }
 
 .status-inactive {
     color: #dc3545;
+=======
+    color: #4CAF50;
+}
+
+.status-inactive {
+    color: #ff9800;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 }
 
 .alert {
@@ -420,6 +476,7 @@ tr:hover {
 .section-hidden {
     display: none;
 }
+<<<<<<< HEAD
 
 .nav-link {
     color: #ffffff;
@@ -509,11 +566,17 @@ thead th {
 .brand-title h2 {
     color: white !important;
 }
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>
     <div class="sidebar">
+<<<<<<< HEAD
         <h2 style="background-color: #000000;">Perfume Paradise</h2>
+=======
+        <h2>Perfume Paradise</h2>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         <a href="admindashboard.php" class="<?php echo $view == 'dashboard' ? 'active' : ''; ?>">Dashboard</a>
         <a href="admindashboard.php?view=users" class="<?php echo $view == 'users' ? 'active' : ''; ?>">Manage Users</a>
         <a href="admindashboard.php?view=sellers" class="<?php echo $view == 'sellers' ? 'active' : ''; ?>">Manage Sellers</a>
@@ -525,7 +588,11 @@ thead th {
 
     <div class="main-content">
         <div class="header">
+<<<<<<< HEAD
             <h1 style="color: #000000;">Welcome Admin!</h1>
+=======
+            <h1>Welcome Admin!</h1>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         </div>
 
         <?php if (isset($_GET['success'])) { ?>
@@ -678,4 +745,8 @@ thead th {
         });
     </script>
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>c
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db

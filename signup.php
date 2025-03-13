@@ -101,7 +101,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $conn->begin_transaction();
             
             try {
+<<<<<<< HEAD
                 // Insert into tbl_signup first
+=======
+                // Insert into tbl_signup first - removed status field
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                 $signup_sql = "INSERT INTO tbl_signup (username, email, phoneno, password, role_type) VALUES (?, ?, ?, ?, ?)";
                 $signup_stmt = $conn->prepare($signup_sql);
                 $hashed_password = password_hash($password, PASSWORD_DEFAULT);
@@ -112,6 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     
                     // Based on role_type, insert into appropriate table
                     if ($role_type === 'user') {
+<<<<<<< HEAD
                         // Update existing user entry or insert new one
                         $user_sql = "INSERT INTO tbl_users (Signup_id, username, email, phoneno, role_type) 
                                    VALUES (?, ?, ?, ?, ?)
@@ -120,12 +125,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                    phoneno = VALUES(phoneno)";
                         $user_stmt = $conn->prepare($user_sql);
                         $user_stmt->bind_param("issss", $Signup_id, $username, $email, $number, $role_type);
+=======
+                        // Delete any existing user entries for this Signup_id
+                        $delete_user = "DELETE FROM tbl_users WHERE Signup_id = ?";
+                        $delete_stmt = $conn->prepare($delete_user);
+                        $delete_stmt->bind_param("i", $Signup_id);
+                        $delete_stmt->execute();
+                        
+                        // Insert new user entry
+                        $user_sql = "INSERT INTO tbl_users (Signup_id, username, role_type) VALUES (?, ?, ?)";
+                        $user_stmt = $conn->prepare($user_sql);
+                        $user_stmt->bind_param("iss", $Signup_id, $username, $role_type);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                         
                         if (!$user_stmt->execute()) {
                             throw new Exception("Failed to create user record");
                         }
                     } 
                     elseif ($role_type === 'seller') {
+<<<<<<< HEAD
                         // Update existing seller entry or insert new one
                         $seller_sql = "INSERT INTO tbl_seller (Signup_id, Sellername, email, phoneno, role_type, Status) 
                                      VALUES (?, ?, ?, ?, ?, 'pending')
@@ -134,6 +152,18 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                      phoneno = VALUES(phoneno)";
                         $seller_stmt = $conn->prepare($seller_sql);
                         $seller_stmt->bind_param("issss", $Signup_id, $username, $email, $number, $role_type);
+=======
+                        // Delete any existing seller entries for this Signup_id
+                        $delete_seller = "DELETE FROM tbl_seller WHERE Signup_id = ?";
+                        $delete_stmt = $conn->prepare($delete_seller);
+                        $delete_stmt->bind_param("i", $Signup_id);
+                        $delete_stmt->execute();
+                        
+                        // Insert new seller entry
+                        $seller_sql = "INSERT INTO tbl_seller (Signup_id, Sellername, role_type, Status) VALUES (?, ?, ?, 'pending')";
+                        $seller_stmt = $conn->prepare($seller_sql);
+                        $seller_stmt->bind_param("iss", $Signup_id, $username, $role_type);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                         
                         if (!$seller_stmt->execute()) {
                             throw new Exception("Failed to create seller record");

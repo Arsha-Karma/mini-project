@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 <?php
 session_start();
 
@@ -203,7 +207,11 @@ $districts = [
 
         .sidebar {
             width: 250px;
+<<<<<<< HEAD
             background-color: #000000;
+=======
+            background-color: #282842;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             padding: 20px;
             position: fixed;
             height: 100vh;
@@ -234,7 +242,11 @@ $districts = [
         }
 
         .nav-links a:hover, .nav-links a.active {
+<<<<<<< HEAD
             background-color: #1a1a1a;
+=======
+            background-color: rgba(255, 255, 255, 0.1);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .main-content {
@@ -253,7 +265,11 @@ $districts = [
         }
 
         h1 {
+<<<<<<< HEAD
             color: #000000 !important;
+=======
+            color: #333;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             margin-bottom: 30px;
             font-size: 24px;
         }
@@ -305,7 +321,11 @@ $districts = [
 
         input:focus, select:focus {
             outline: none;
+<<<<<<< HEAD
             border-color: #000000;
+=======
+            border-color: #8B2323;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .button-container {
@@ -315,7 +335,11 @@ $districts = [
         }
 
         .btn-submit {
+<<<<<<< HEAD
             background-color: #000000;
+=======
+            background-color: #006400;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             color: white;
             padding: 12px 30px;
             border: none;
@@ -326,7 +350,11 @@ $districts = [
         }
 
         .btn-submit:hover {
+<<<<<<< HEAD
             background-color: #1a1a1a;
+=======
+            background-color: #005000;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .btn-delete {
@@ -417,10 +445,13 @@ $districts = [
             font-size: 12px;
             margin-top: 5px;
         }
+<<<<<<< HEAD
 
         input.is-valid, select.is-valid {
             border-color: #000000;
         }
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>

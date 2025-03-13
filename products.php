@@ -150,10 +150,17 @@ $subcategories = $subcategoryQuery->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // 3. Fetch all brands
 $brandQuery = $conn->prepare("
+<<<<<<< HEAD
     SELECT b.brand_id, b.name as brand_name, b.subcategory_id
     FROM tbl_brands b
     WHERE b.deleted = 0
     ORDER BY b.name ASC
+=======
+    SELECT brand_id, name as brand_name
+    FROM tbl_brands
+    WHERE deleted = 0
+    ORDER BY name ASC
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 ");
 $brandQuery->execute();
 $brands = $brandQuery->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -318,10 +325,17 @@ function handleImageUpload($file) {
 
         .sidebar {
             width: 250px;
+<<<<<<< HEAD
             background-color: #1a1a1a !important;
             height: 100vh;
             position: fixed;
             color: white;
+=======
+            background-color: #2d2a4b;
+            height: 100vh;
+            position: fixed;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .sidebar h2, .sidebar h3 {
@@ -333,6 +347,7 @@ function handleImageUpload($file) {
         }
 
         .sidebar a {
+<<<<<<< HEAD
             color: #ffffff;
             padding: 15px 20px;
             text-decoration: none;
@@ -343,6 +358,20 @@ function handleImageUpload($file) {
         .sidebar a:hover, .sidebar .active {
             background-color: #1a1a1a;
             color: #ffffff;
+=======
+            display: flex;
+            align-items: center;
+            color: #fff;
+            padding: 15px 20px;
+            text-decoration: none;
+            border-bottom: 1px solid #3a375f;
+            transition: all 0.3s ease;
+        }
+
+        .sidebar a:hover, .sidebar .active {
+            background-color: #3a375f;
+            color: #fff;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .main-content {
@@ -376,8 +405,12 @@ function handleImageUpload($file) {
         }
 
         thead {
+<<<<<<< HEAD
             background-color: #1a1a1a !important;
             color: white;
+=======
+            background-color: #2d2a4b;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         th {
@@ -459,8 +492,13 @@ function handleImageUpload($file) {
         }
 
         .form-control:focus {
+<<<<<<< HEAD
             border-color: #000000;
             box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
+=======
+            border-color: #80bdff;
+            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .form-control.is-invalid {
@@ -474,6 +512,7 @@ function handleImageUpload($file) {
         }
 
         .btn-primary {
+<<<<<<< HEAD
             background-color: #000000 !important;
             border-color: #000000 !important;
             color: #ffffff;
@@ -482,6 +521,15 @@ function handleImageUpload($file) {
         .btn-primary:hover {
             background-color: #1a1a1a !important;
             border-color: #1a1a1a !important;
+=======
+            background-color: #2d2a4b;
+            border-color: #2d2a4b;
+        }
+
+        .btn-primary:hover {
+            background-color: #3a375f;
+            border-color: #3a375f;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         /* Form table styles */
@@ -536,6 +584,7 @@ function handleImageUpload($file) {
                 margin: 5px;
             }
         }
+<<<<<<< HEAD
 
         .nav-link {
             color: white !important;
@@ -592,11 +641,17 @@ function handleImageUpload($file) {
             padding: 20px;
             margin: 0;
         }
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>
     <div class="sidebar"><br>
+<<<<<<< HEAD
     <h4 style="color: white; text-align: center;">Perfume Paradise</h4>
+=======
+        <h3>Perfume Paradise</h3>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         <a href="seller-dashboard.php">Dashboard</a>
         <a href="index.php">Home</a>
         <a href="profile.php">Edit Profile</a>
@@ -608,7 +663,11 @@ function handleImageUpload($file) {
 
     <div class="main-content">
         <div class="header">
+<<<<<<< HEAD
             <h1 style="color: #000000;" >Product Management</h1>
+=======
+            <h1>Product Management</h1>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             <div class="mb-4">
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
                     <i class="fas fa-plus"></i> Add New Product
@@ -715,6 +774,7 @@ function handleImageUpload($file) {
                                     <label for="price" class="form-label required">Price (₹)</label>
                                 </td>
                                 <td>
+<<<<<<< HEAD
                                     <input type="number" 
                                            class="form-control" 
                                            id="price" 
@@ -724,6 +784,11 @@ function handleImageUpload($file) {
                                            required
                                            onfocus="showValidationMessage(this, 'Price must be greater than 0')"
                                            onblur="validateNumericField(this, 0, 'Price')">
+=======
+                                    <input type="number" class="form-control" id="price" name="price" step="0.01"
+                                           onfocus="showValidationMessage(this, 'Price must be greater than 0')"
+                                           onblur="validateNumericField(this, 0, 'price')">
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                                     <div class="error-message"></div>
                                     <div class="validation-message"></div>
                                 </td>
@@ -734,6 +799,7 @@ function handleImageUpload($file) {
                                     <label for="stock" class="form-label required">Stock Quantity</label>
                                 </td>
                                 <td>
+<<<<<<< HEAD
                                     <input type="number" 
                                            class="form-control" 
                                            id="stock" 
@@ -742,6 +808,11 @@ function handleImageUpload($file) {
                                            required
                                            onfocus="showValidationMessage(this, 'Stock quantity must be greater than 0')"
                                            onblur="validateNumericField(this, 0, 'Stock quantity')">
+=======
+                                    <input type="number" class="form-control" id="stock" name="stock"
+                                           onfocus="showValidationMessage(this, 'Stock quantity must be 0 or greater')"
+                                           onblur="validateNumericField(this, 0, 'stock')">
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                                     <div class="error-message"></div>
                                     <div class="validation-message"></div>
                                 </td>
@@ -752,6 +823,7 @@ function handleImageUpload($file) {
                                     <label for="category_id" class="form-label required">Category</label>
                                 </td>
                                 <td>
+<<<<<<< HEAD
                                     <select class="form-control" 
                                             id="category_id" 
                                             name="category_id" 
@@ -761,6 +833,15 @@ function handleImageUpload($file) {
                                         <option value="">Select Category</option>
                                         <?php foreach ($categories as $category): ?>
                                             <option value="<?php echo $category['category_id']; ?>">
+=======
+                                    <select class="form-control" id="category_id" name="category_id" required 
+                                            onchange="updateSubcategories(); validateSelect(this)"
+                                            onfocus="showValidationMessage(this, 'Please select a category')">
+                                        <option value="">Select Category</option>
+                                        <?php foreach ($categories as $category): ?>
+                                            <option value="<?php echo $category['category_id']; ?>"
+                                                <?php echo (isset($editProduct) && $editProduct['category_id'] == $category['category_id']) ? 'selected' : ''; ?>>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                                                 <?php echo htmlspecialchars($category['name']); ?>
                                             </option>
                                         <?php endforeach; ?>
@@ -772,6 +853,7 @@ function handleImageUpload($file) {
 
                             <tr>
                                 <td>
+<<<<<<< HEAD
                                     <label for="subcategory_id" class="form-label">Subcategory</label>
                                 </td>
                                 <td>
@@ -780,11 +862,31 @@ function handleImageUpload($file) {
                                             name="subcategory_id">
                                         <option value="">Select Category First</option>
                                     </select>
+=======
+                                    <label for="subcategory_id" class="form-label required">Subcategory</label>
+                                </td>
+                                <td>
+                                    <select class="form-control" id="subcategory_id" name="subcategory_id" required 
+                                            onchange="updateBrands(); validateSelect(this)"
+                                            onfocus="showValidationMessage(this, 'Please select a subcategory')">
+                                        <option value="">Select Subcategory</option>
+                                        <?php foreach ($subcategories as $subcategory): ?>
+                                            <option value="<?php echo $subcategory['subcategory_id']; ?>" 
+                                                    data-category="<?php echo $subcategory['category_id']; ?>"
+                                                    <?php echo (isset($editProduct) && $editProduct['subcategory_id'] == $subcategory['subcategory_id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($subcategory['name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="error-message"></div>
+                                    <div class="validation-message"></div>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>
+<<<<<<< HEAD
                                     <label for="brand_id" class="form-label">Brand</label>
                                 </td>
                                 <td>
@@ -793,6 +895,24 @@ function handleImageUpload($file) {
                                             name="brand_id">
                                         <option value="">Select Subcategory First</option>
                                     </select>
+=======
+                                    <label for="brand_id" class="form-label required">Brand</label>
+                                </td>
+                                <td>
+                                    <select class="form-control" id="brand_id" name="brand_id" required 
+                                            onchange="validateSelect(this)"
+                                            onfocus="showValidationMessage(this, 'Please select a brand')">
+                                        <option value="">Select Brand</option>
+                                        <?php foreach ($brands as $brand): ?>
+                                            <option value="<?php echo $brand['brand_id']; ?>"
+                                                <?php echo (isset($editProduct) && $editProduct['brand_id'] == $brand['brand_id']) ? 'selected' : ''; ?>>
+                                                <?php echo htmlspecialchars($brand['brand_name']); ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <div class="error-message"></div>
+                                    <div class="validation-message"></div>
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                                 </td>
                             </tr>
 
@@ -826,7 +946,10 @@ function handleImageUpload($file) {
             const validationDiv = input.nextElementSibling;
             validationDiv.style.display = 'block';
             validationDiv.textContent = message;
+<<<<<<< HEAD
             validationDiv.style.color = '#dc3545';
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         function hideValidationMessage(input) {
@@ -852,6 +975,7 @@ function handleImageUpload($file) {
             }
         }
 
+<<<<<<< HEAD
         function validateNumericField(input, minValue, fieldName) {
             const value = parseFloat(input.value);
             const errorDiv = input.nextElementSibling;
@@ -868,6 +992,24 @@ function handleImageUpload($file) {
             input.classList.remove('is-invalid');
             errorDiv.style.display = 'none';
             return true;
+=======
+        function validateNumericField(input, minValue, type) {
+            const value = parseFloat(input.value);
+            const errorDiv = input.nextElementSibling;
+            
+            if (isNaN(value) || value < minValue) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                errorDiv.textContent = `${type === 'price' ? 'Price' : 'Stock'} must be ${minValue === 0 ? 'greater than or equal to' : 'greater than'} ${minValue}`;
+                errorDiv.style.display = 'block';
+                return false;
+            } else {
+                input.classList.add('is-valid');
+                input.classList.remove('is-invalid');
+                errorDiv.style.display = 'none';
+                return true;
+            }
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         function validateSelect(select) {
@@ -876,6 +1018,7 @@ function handleImageUpload($file) {
             if (!select.value) {
                 select.classList.add('is-invalid');
                 select.classList.remove('is-valid');
+<<<<<<< HEAD
                 errorDiv.textContent = 'This field is required';
                 errorDiv.style.display = 'block';
                 return false;
@@ -885,6 +1028,17 @@ function handleImageUpload($file) {
             select.classList.remove('is-invalid');
             errorDiv.style.display = 'none';
             return true;
+=======
+                errorDiv.textContent = 'Please make a selection';
+                errorDiv.style.display = 'block';
+                return false;
+            } else {
+                select.classList.add('is-valid');
+                select.classList.remove('is-invalid');
+                errorDiv.style.display = 'none';
+                return true;
+            }
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         function validateImage(input) {
@@ -1204,9 +1358,17 @@ function handleImageUpload($file) {
             // Validate all fields
             isValid = validateField(document.getElementById('name'), 3, 50) && isValid;
             isValid = validateField(document.getElementById('description'), 10, 200) && isValid;
+<<<<<<< HEAD
             isValid = validateNumericField(document.getElementById('price'), 0, 'Price') && isValid;
             isValid = validateNumericField(document.getElementById('stock'), 0, 'Stock quantity') && isValid;
             isValid = validateSelect(document.getElementById('category_id')) && isValid;
+=======
+            isValid = validateNumericField(document.getElementById('price'), 0, 'price') && isValid;
+            isValid = validateNumericField(document.getElementById('stock'), 0, 'stock') && isValid;
+            isValid = validateSelect(document.getElementById('category_id')) && isValid;
+            isValid = validateSelect(document.getElementById('subcategory_id')) && isValid;
+            isValid = validateSelect(document.getElementById('brand_id')) && isValid;
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             
             // Validate image only if uploaded in edit mode or if it's a new product
             const imageInput = document.getElementById('product_image');
@@ -1216,6 +1378,7 @@ function handleImageUpload($file) {
             
             return isValid;
         }
+<<<<<<< HEAD
 
         document.addEventListener('DOMContentLoaded', function() {
             // Get the select elements
@@ -1299,6 +1462,8 @@ function handleImageUpload($file) {
                 validateNumericField(this, 0, 'Stock quantity');
             });
         });
+=======
+>>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </script>
 </body>
 </html>

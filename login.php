@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 <?php
 session_start();
 require_once('dbconnect.php'); // Include the database connection file
@@ -15,7 +11,6 @@ if (isset($_GET['message']) && $_GET['message'] === 'account_disabled') {
     $success_message = "Your account has been disabled successfully.";
 }
 
-<<<<<<< HEAD
 // Handle Google login
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['google_login'])) {
     $google_email = isset($_POST['google_email']) ? sanitize_input($conn, $_POST['google_email']) : '';
@@ -126,8 +121,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['google_login'])) {
 }
 
 // Regular login handling
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     $username = sanitize_input($conn, $_POST['username']);
     $password = trim($_POST['password']);
@@ -199,11 +192,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login</title>
-<<<<<<< HEAD
     <!-- Add Google Sign-In API -->
     <script src="https://accounts.google.com/gsi/client" async defer></script>
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     <style>
         body {
             background-image: url('image/image1.jpg');
@@ -309,7 +299,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             box-shadow: 0 2px 8px rgba(225, 112, 85, 0.4);
         }
 
-<<<<<<< HEAD
         /* Google Sign In Button */
         .or-divider {
             display: flex;
@@ -362,8 +351,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             height: 18px;
         }
 
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         /* Modal Styles */
         .modal-overlay {
             display: none;
@@ -443,7 +430,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
             background-color: #3182ce;
         }
         h2 { 
-<<<<<<< HEAD
             color: #fff; 
             margin-bottom: 25px; 
             text-align: center; 
@@ -457,21 +443,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         a:hover {
             color: #d65d45;
         }
-=======
-    color: #fff; 
-    margin-bottom: 25px; 
-    text-align: center; 
-}
-
-a {
-    color: #e17055;
-    text-decoration: none;
-}
-
-a:hover {
-    color: #d65d45;
-}
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>
@@ -515,7 +486,6 @@ a:hover {
             </div>
 
             <button type="submit" name="login" class="login-btn">Login</button>
-<<<<<<< HEAD
             
             <div class="or-divider">or</div>
             
@@ -530,8 +500,6 @@ a:hover {
                 </svg>
                  &nbsp; &nbsp; &nbsp;Continue with Google
             </button>
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 
             <p style="text-align: center; margin-top: 20px;">
                 Don't have an account? <a href="signup.php">Sign Up</a>
@@ -578,7 +546,6 @@ a:hover {
                 window.location.href = 'login.php';
             }
         });
-<<<<<<< HEAD
 
         // Firebase configuration for Google Authentication
         document.addEventListener('DOMContentLoaded', function() {
@@ -673,8 +640,6 @@ a:hover {
                     console.error("Error loading Firebase scripts:", error);
                 });
         });
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </script>
 </body>
 </html>

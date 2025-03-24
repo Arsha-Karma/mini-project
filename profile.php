@@ -1,8 +1,8 @@
-<<<<<<< HEAD
-=======
-
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 <?php
+// Add this temporarily for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 session_start();
 
 // Redirect if not logged in
@@ -45,11 +45,31 @@ if ($result->num_rows == 0) {
 
 // Fetch user data function
 function getUserData($conn, $user_id) {
-    $stmt = $conn->prepare("SELECT s.*, u.username as user_username, sel.Sellername as business_name 
-            FROM tbl_signup s 
-            LEFT JOIN tbl_users u ON s.Signup_id = u.Signup_id 
-            LEFT JOIN tbl_seller sel ON s.Signup_id = sel.Signup_id 
-            WHERE s.Signup_id = ?");
+    // Modified query to get all necessary information
+    $stmt = $conn->prepare("
+        SELECT 
+            s.*,                    /* All fields from signup */
+            s.username,             /* Username from signup */
+            s.email,               /* Email from signup */
+            s.Phoneno,             /* Phone from signup */
+            s.address,             /* Address from signup */
+            s.city,                /* City from signup */
+            s.district,            /* District from signup */
+            s.role_type,           /* Role type from signup */
+            sel.Sellername,        /* Seller name if seller */
+            sel.seller_id,         /* Seller ID if seller */
+            sel.id_type,           /* ID type if seller */
+            sel.id_number,         /* ID number if seller */
+            sel.verified_status,    /* Verification status if seller */
+            doc.id_proof_front,    /* Document proofs if seller */
+            doc.id_proof_back,
+            doc.business_proof,
+            doc.address_proof
+        FROM tbl_signup s 
+        LEFT JOIN tbl_seller sel ON s.Signup_id = sel.Signup_id 
+        LEFT JOIN seller_verification_docs doc ON sel.seller_id = doc.seller_id
+        WHERE s.Signup_id = ?
+    ");
     
     if (!$stmt) {
         error_log("Statement preparation failed: " . $conn->error);
@@ -64,7 +84,16 @@ function getUserData($conn, $user_id) {
     }
     
     $result = $stmt->get_result();
-    return $result->fetch_assoc();
+    $userData = $result->fetch_assoc();
+    
+    // For debugging
+    if ($userData) {
+        error_log("User data found: " . print_r($userData, true));
+    } else {
+        error_log("No user data found for ID: " . $user_id);
+    }
+    
+    return $userData;
 }
 
 // Fetch user role
@@ -159,6 +188,13 @@ if (!$userData) {
     $messageType = 'error';
 }
 
+// After getting user data
+if ($userData) {
+    echo "<!-- Debug: ";
+    print_r($userData);
+    echo " -->";
+}
+
 // Fetch user role
 $userRole = getUserRole($conn, $user_id);
 $_SESSION['role'] = $userRole;
@@ -207,11 +243,7 @@ $districts = [
 
         .sidebar {
             width: 250px;
-<<<<<<< HEAD
             background-color: #000000;
-=======
-            background-color: #282842;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             padding: 20px;
             position: fixed;
             height: 100vh;
@@ -242,11 +274,7 @@ $districts = [
         }
 
         .nav-links a:hover, .nav-links a.active {
-<<<<<<< HEAD
             background-color: #1a1a1a;
-=======
-            background-color: rgba(255, 255, 255, 0.1);
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .main-content {
@@ -265,11 +293,7 @@ $districts = [
         }
 
         h1 {
-<<<<<<< HEAD
             color: #000000 !important;
-=======
-            color: #333;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             margin-bottom: 30px;
             font-size: 24px;
         }
@@ -321,11 +345,7 @@ $districts = [
 
         input:focus, select:focus {
             outline: none;
-<<<<<<< HEAD
             border-color: #000000;
-=======
-            border-color: #8B2323;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .button-container {
@@ -335,11 +355,7 @@ $districts = [
         }
 
         .btn-submit {
-<<<<<<< HEAD
             background-color: #000000;
-=======
-            background-color: #006400;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             color: white;
             padding: 12px 30px;
             border: none;
@@ -350,11 +366,7 @@ $districts = [
         }
 
         .btn-submit:hover {
-<<<<<<< HEAD
             background-color: #1a1a1a;
-=======
-            background-color: #005000;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .btn-delete {
@@ -445,13 +457,80 @@ $districts = [
             font-size: 12px;
             margin-top: 5px;
         }
-<<<<<<< HEAD
 
         input.is-valid, select.is-valid {
             border-color: #000000;
         }
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+
+        .verification-section {
+            margin-top: 30px;
+            padding: 20px;
+            background: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .documents-list {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 6px;
+        }
+
+        .documents-list h4 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .document-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .document-links li {
+            margin-bottom: 12px;
+            padding: 8px;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .document-links li:hover {
+            background-color: #f1f3f5;
+        }
+
+        .document-links i {
+            margin-right: 10px;
+            color: #6c757d;
+        }
+
+        .doc-link {
+            color: #007bff;
+            text-decoration: none;
+            font-size: 0.95rem;
+        }
+
+        .doc-link:hover {
+            text-decoration: underline;
+            color: #0056b3;
+        }
+
+        /* Existing form-grid styles */
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group input[readonly] {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            cursor: not-allowed;
+        }
     </style>
 </head>
 <body>
@@ -459,10 +538,51 @@ $districts = [
         <div class="sidebar">
             <div class="logo">Perfume Paradise</div>
             <ul class="nav-links">
-                <li><a href="#" class="active"><span>Edit Profile</span></a></li>
-                <li><a href="#"><span>Settings</span></a></li>
-                <li><a href="<?php echo ($_SESSION['role'] === 'seller') ? 'seller-dashboard.php' : 'index.php'; ?>"><span>Home</span></a></li>
-                <li><a href="logout.php"><span>Logout</span></a></li>
+                <li>
+                    <?php if (isset($_SESSION['role'])): ?>
+                        <?php if ($_SESSION['role'] === 'admin'): ?>
+                            <a href="admindashboard.php">
+                                <i class="fas fa-home"></i>
+                                <span class="link-name">Home</span>
+                            </a>
+                        <?php elseif ($_SESSION['role'] === 'seller'): ?>
+                            <a href="seller-dashboard.php">
+                                <i class="fas fa-home"></i>
+                                <span class="link-name">Home</span>
+                            </a>
+                        <?php else: ?>
+                            <a href="index.php">
+                                <i class="fas fa-home"></i>
+                                <span class="link-name">Home</span>
+                            </a>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                </li>
+                <li>
+                    <a href="profile.php">
+                        <i class="fas fa-user"></i>
+                        <span class="link-name">Profile</span>
+                    </a>
+                </li>
+                <li>
+                    <?php if (isset($_SESSION['role']) && $_SESSION['role'] === 'seller'): ?>
+                        <a href="sales.php">
+                            <i class="fas fa-shopping-bag"></i>
+                            <span class="link-name">Orders</span>
+                        </a>
+                    <?php else: ?>
+                        <a href="orders.php">
+                            <i class="fas fa-shopping-bag"></i>
+                            <span class="link-name">Orders</span>
+                        </a>
+                    <?php endif; ?>
+                </li>
+                <li>
+                    <a href="logout.php">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span class="link-name">Logout</span>
+                    </a>
+                </li>
             </ul>
         </div>
 
@@ -502,7 +622,7 @@ $districts = [
                         <div class="form-group">
                             <label>Business Name</label>
                             <input type="text" name="business_name" 
-                                   value="<?php echo htmlspecialchars($userData['business_name'] ?? ''); ?>" 
+                                   value="<?php echo htmlspecialchars($userData['Sellername'] ?? ''); ?>" 
                                    required>
                             <div id="business-name-error" class="field-error"></div>
                         </div>
@@ -547,6 +667,77 @@ $districts = [
                         <label>Confirm New Password</label>
                         <input type="password" name="confirm_password">
                     </div>
+
+                    <?php if ($userRole === 'seller'): ?>
+                        <div class="verification-section" style="grid-column: 1 / -1;">
+                            <h3>Verification Documents</h3><br>
+                            <div class="form-grid">
+                                <div class="form-group">
+                                    <label>ID Type</label>
+                                    <input type="text" value="<?php echo htmlspecialchars($userData['id_type'] ?? ''); ?>" readonly>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>ID Number</label>
+                                    <input type="text" value="<?php echo htmlspecialchars($userData['id_number'] ?? ''); ?>" readonly>
+                                </div>
+
+                                <div class="form-group">
+                                    <label>Verification Status</label>
+                                    <input type="text" value="<?php echo htmlspecialchars($userData['verified_status'] ?? ''); ?>" readonly>
+                                </div>
+                            </div>
+
+                            <div class="uploaded-documents">
+                                <h4>Uploaded Documents</h4>
+                                <div style="background: #f5f5f5; padding: 15px; border-radius: 4px;">
+                                    <?php if (!empty($userData['id_proof_front'])): ?>
+                                        <div style="margin-bottom: 10px;">
+                                            <i class="fas fa-file-image" style="margin-right: 10px; color: #666;"></i>
+                                            <a href="<?php echo htmlspecialchars($userData['id_proof_front']); ?>" 
+                                               target="_blank" 
+                                               style="color: #000; text-decoration: none;">
+                                                ID Proof (Front) - <?php echo basename($userData['id_proof_front']); ?>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($userData['id_proof_back'])): ?>
+                                        <div style="margin-bottom: 10px;">
+                                            <i class="fas fa-file-image" style="margin-right: 10px; color: #666;"></i>
+                                            <a href="<?php echo htmlspecialchars($userData['id_proof_back']); ?>" 
+                                               target="_blank" 
+                                               style="color: #000; text-decoration: none;">
+                                                ID Proof (Back) - <?php echo basename($userData['id_proof_back']); ?>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($userData['business_proof'])): ?>
+                                        <div style="margin-bottom: 10px;">
+                                            <i class="fas fa-file-image" style="margin-right: 10px; color: #666;"></i>
+                                            <a href="<?php echo htmlspecialchars($userData['business_proof']); ?>" 
+                                               target="_blank" 
+                                               style="color: #000; text-decoration: none;">
+                                                Business Proof - <?php echo basename($userData['business_proof']); ?>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+
+                                    <?php if (!empty($userData['address_proof'])): ?>
+                                        <div style="margin-bottom: 10px;">
+                                            <i class="fas fa-file-image" style="margin-right: 10px; color: #666;"></i>
+                                            <a href="<?php echo htmlspecialchars($userData['address_proof']); ?>" 
+                                               target="_blank" 
+                                               style="color: #000; text-decoration: none;">
+                                                Address Proof - <?php echo basename($userData['address_proof']); ?>
+                                            </a>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="button-container">

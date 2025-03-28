@@ -28,7 +28,11 @@ if (!$order) {
 }
 
 // Fetch order items
+<<<<<<< HEAD
 $items_query = "SELECT o.*, p.name as product_name, p.price, p.image_path, o.gift_wrap_charge, o.gift_option, o.gift_wrap_type 
+=======
+$items_query = "SELECT o.*, p.name as product_name, p.price, p.image_path 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 FROM orders_table o
                 JOIN tbl_product p ON o.product_id = p.product_id 
                 WHERE o.order_id = ?";
@@ -40,6 +44,7 @@ $items = $stmt->get_result();
 // Calculate totals
 $subtotal = 0;
 $items_array = array();
+<<<<<<< HEAD
 $gift_wrap_charge = 0;
 
 while ($item = $items->fetch_assoc()) {
@@ -52,12 +57,31 @@ while ($item = $items->fetch_assoc()) {
     if ($item['gift_option'] && !empty($item['gift_wrap_charge'])) {
         $gift_wrap_charge = floatval($item['gift_wrap_charge']);
     }
+=======
+while ($item = $items->fetch_assoc()) {
+    $items_array[] = $item;
+    $subtotal += $item['total_amount'];
+    error_log("Product: " . $item['product_name'] . ", Image path: " . $item['image_path']);
+}
+
+// Add after fetching items
+foreach ($items_array as $item) {
+    error_log("Debug - Product: " . $item['product_name']);
+    error_log("Debug - Image Path in DB: " . $item['image_path']);
+    $full_path = "uploads/products/" . ltrim($item['image_path'], '/');
+    error_log("Debug - Full Image Path: " . $full_path);
+    error_log("Debug - File exists: " . (file_exists($full_path) ? "Yes" : "No"));
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 }
 
 // Calculate shipping and tax
 $shipping = $subtotal >= 1000 ? 0 : 50;
 $tax = $subtotal * 0.05; // 5% tax
+<<<<<<< HEAD
 $total_amount = $subtotal + $shipping + $tax + $gift_wrap_charge;
+=======
+$total_amount = $subtotal + $shipping + $tax;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 ?>
 
 <!DOCTYPE html>
@@ -291,10 +315,26 @@ $total_amount = $subtotal + $shipping + $tax + $gift_wrap_charge;
                     <div class="product-image">
                         <?php 
                         $image_path = $item['image_path'];
+<<<<<<< HEAD
                         if (!empty($image_path)) {
                             $image_path = ltrim($image_path, '/');
                             $image_path = str_replace('uploads/products/', '', $image_path);
                             $image_path = "uploads/products/" . $image_path;
+=======
+                        // Debug the image path
+                        error_log("Original image path: " . $image_path);
+                        
+                        // Ensure the image path is correct
+                        if (!empty($image_path)) {
+                            // Remove any leading slashes or 'uploads/products' if already present
+                            $image_path = ltrim($image_path, '/');
+                            $image_path = str_replace('uploads/products/', '', $image_path);
+                            
+                            // Construct the full path
+                            $image_path = "uploads/products/" . $image_path;
+                            
+                            error_log("Final image path: " . $image_path);
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                         } else {
                             $image_path = "images/default-product.jpg";
                         }
@@ -305,6 +345,7 @@ $total_amount = $subtotal + $shipping + $tax + $gift_wrap_charge;
                              style="width: 100px; height: 100px; object-fit: cover;">
                     </div>
                 </td>
+<<<<<<< HEAD
                 <td>
                     <?php echo htmlspecialchars($item['product_name']); ?>
                     <?php if ($item['gift_option']): ?>
@@ -314,6 +355,12 @@ $total_amount = $subtotal + $shipping + $tax + $gift_wrap_charge;
                 <td>₹<?php echo number_format($item['price'], 2); ?></td>
                 <td><?php echo $item['quantity']; ?></td>
                 <td>₹<?php echo number_format($item['price'] * $item['quantity'], 2); ?></td>
+=======
+                <td><?php echo htmlspecialchars($item['product_name']); ?></td>
+                <td>₹<?php echo number_format($item['price'], 2); ?></td>
+                <td><?php echo $item['quantity']; ?></td>
+                <td>₹<?php echo number_format($item['total_amount'], 2); ?></td>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             </tr>
             <?php endforeach; ?>
         </tbody>
@@ -332,12 +379,15 @@ $total_amount = $subtotal + $shipping + $tax + $gift_wrap_charge;
             <span>Tax (5%):</span>
             <span>₹<?php echo number_format($tax, 2); ?></span>
         </div>
+<<<<<<< HEAD
         <?php if ($gift_wrap_charge > 0): ?>
         <div class="total-row">
             <span>Gift Wrap Charge:</span>
             <span>₹<?php echo number_format($gift_wrap_charge, 2); ?></span>
         </div>
         <?php endif; ?>
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         <div class="total-row final">
             <span>Total Amount:</span>
             <span>₹<?php echo number_format($total_amount, 2); ?></span>

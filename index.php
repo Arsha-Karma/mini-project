@@ -1372,9 +1372,15 @@ function getCategoryType($name) {
     <div class="logo">
         <img src="image/logo.png" alt="Perfume Paradise Logo">
     </div>
+<<<<<<< HEAD
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <div class="nav-links">
         <a href="index.php">Home</a> 
+=======
+    &nbsp;&nbsp;
+    <div class="nav-links">
+        <a href="index.php">Home</a> &nbsp;&nbsp;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         <div class="dropdown">
             <a href="#categories">Categories</a>
             <div class="dropdown-content">
@@ -1484,9 +1490,15 @@ function getCategoryType($name) {
                     </div>
                 </div>
             </div>
+<<<<<<< HEAD
         </div>
         <a href="Aboutas.php">Our story</a> 
         <a href="contactus.php">Contact Us</a> 
+=======
+        </div> &nbsp;&nbsp;
+        <a href="Aboutas.php">Our story</a> &nbsp;&nbsp; &nbsp;&nbsp;
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         <!-- Search container moved here, after Our story -->
         <div class="search-container">
             <div class="search-box">
@@ -1510,7 +1522,11 @@ function getCategoryType($name) {
                 <span class="cart-count"><?php echo $_SESSION['cart_count']; ?></span>
             <?php endif; ?>
         </a>
+<<<<<<< HEAD
 
+=======
+&nbsp;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         <div class="profile-icon">
             <?php if(isset($_SESSION['user_id'])): ?>
                 <div class="user-circle" id="userCircle">

@@ -14,7 +14,11 @@ require_once('dbconnect.php');
 $database_name = "perfumes";
 mysqli_select_db($conn, $database_name);
 
+<<<<<<< HEAD
 // Get the current view from URL parameter, default to 'dashboard'
+=======
+// Determine which section to show
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 $view = isset($_GET['view']) ? $_GET['view'] : 'dashboard';
 
 // Validate the view parameter to prevent unauthorized values
@@ -64,7 +68,11 @@ $activeSellers = $sellerStats['active_count'] ?? 0;
 $inactiveSellers = $sellerStats['inactive_count'] ?? 0;
 
 // Add order statistics query after line 65
+<<<<<<< HEAD
 $totalOrdersQuery = "SELECT
+=======
+$totalOrdersQuery = "SELECT 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     COUNT(*) as total,
     SUM(CASE WHEN order_status = 'processing' THEN 1 ELSE 0 END) as processing_count,
     SUM(CASE WHEN order_status = 'completed' THEN 1 ELSE 0 END) as completed_count
@@ -77,6 +85,7 @@ $totalOrders = $orderStats['total'] ?? 0;
 $processingOrders = $orderStats['processing_count'] ?? 0;
 $completedOrders = $orderStats['completed_count'] ?? 0;
 
+<<<<<<< HEAD
 // Add this query after your existing queries
 $admin_profits_query = "SELECT 
     SUM(amount) as total_profit,
@@ -89,6 +98,8 @@ $profits_data = mysqli_fetch_assoc($profits_result);
 $total_admin_profit = $profits_data['total_profit'] ?? 0;
 $current_month_profit = $profits_data['current_month_profit'] ?? 0;
 
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 // Include PHPMailer
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -218,16 +229,28 @@ if (isset($_POST['action']) && isset($_POST['id'])) {
 
 if (isset($_POST['action']) && isset($_POST['seller_id'])) {
     $seller_id = intval($_POST['seller_id']);
+<<<<<<< HEAD
    
     switch($_POST['action']) {
         case 'approve_seller':
             $updateSeller = "UPDATE tbl_seller
                 SET verified_status = 'verified'
+=======
+    
+    switch($_POST['action']) {
+        case 'approve_seller':
+            $updateSeller = "UPDATE tbl_seller 
+                SET verified_status = 'verified' 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 WHERE seller_id = ?";
             $stmt = mysqli_prepare($conn, $updateSeller);
             mysqli_stmt_bind_param($stmt, "i", $seller_id);
             mysqli_stmt_execute($stmt);
+<<<<<<< HEAD
            
+=======
+            
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             // Send approval email to seller
             $emailQuery = "SELECT email FROM tbl_seller WHERE seller_id = ?";
             $stmt = mysqli_prepare($conn, $emailQuery);
@@ -235,7 +258,11 @@ if (isset($_POST['action']) && isset($_POST['seller_id'])) {
             mysqli_stmt_execute($stmt);
             $result = mysqli_stmt_get_result($stmt);
             $email = mysqli_fetch_assoc($result)['email'];
+<<<<<<< HEAD
            
+=======
+            
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             // Use the existing email function
             $mail = new PHPMailer(true);
             try {
@@ -246,28 +273,47 @@ if (isset($_POST['action']) && isset($_POST['seller_id'])) {
                 $mail->Password = 'ilwf fpya pwkx pmat';
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                 $mail->Port = 587;
+<<<<<<< HEAD
                
+=======
+                
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 $mail->setFrom('arshaprasobh318@gmail.com', 'Perfume Paradise');
                 $mail->addAddress($email);
                 $mail->Subject = 'Seller Verification Approved';
                 $mail->Body = "Congratulations! Your seller account has been verified. You can now start adding products and selling on Perfume Paradise.";
+<<<<<<< HEAD
                
+=======
+                
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 $mail->send();
             } catch (Exception $e) {
                 error_log("Email sending failed: " . $mail->ErrorInfo);
             }
             break;
+<<<<<<< HEAD
            
         case 'reject_seller':
             $updateSeller = "UPDATE tbl_seller
                 SET verified_status = 'rejected'
+=======
+            
+        case 'reject_seller':
+            $updateSeller = "UPDATE tbl_seller 
+                SET verified_status = 'rejected' 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 WHERE seller_id = ?";
             $stmt = mysqli_prepare($conn, $updateSeller);
             mysqli_stmt_bind_param($stmt, "i", $seller_id);
             mysqli_stmt_execute($stmt);
             break;
     }
+<<<<<<< HEAD
    
+=======
+    
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     header("Location: admindashboard.php?view=verify-sellers&success=1");
     exit();
 }
@@ -346,12 +392,19 @@ $pending_verification_result = $conn->query($pending_verification_query);
 .sidebar {
     height: 100%;
     width: 250px;
+<<<<<<< HEAD
     position: fixed;
     top: 0;
     left: 0;
     background-color: #1a1a1a;
     padding-top: 20px;
     color: white;
+=======
+    background-color: #1a1a1a !important;  /* Dark black for sidebar */
+    height: 100vh;
+    position: fixed;
+    color: #ffffff;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 }
 
 .sidebar h2 {
@@ -363,7 +416,12 @@ $pending_verification_result = $conn->query($pending_verification_query);
 }
 
 .sidebar a {
+<<<<<<< HEAD
     padding: 15px 25px;
+=======
+    color: #ffffff;
+    padding: 15px 20px;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     text-decoration: none;
     font-size: 16px;
     color: #fff;
@@ -371,6 +429,7 @@ $pending_verification_result = $conn->query($pending_verification_query);
     transition: 0.3s;
 }
 
+<<<<<<< HEAD
 .sidebar a:hover {
     background-color: #333;
     color: #fff;
@@ -387,6 +446,11 @@ $pending_verification_result = $conn->query($pending_verification_query);
     width: 20px;
     text-align: center;
     font-size: 16px;
+=======
+.sidebar a:hover, .sidebar .active {
+    background-color: #1a1a1a;
+    color: #ffffff;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 }
 
 /* Adjust main content to accommodate sidebar */
@@ -796,6 +860,7 @@ small {
     color: white;
 }
 
+<<<<<<< HEAD
 .modal {
     display: none;
     position: fixed;
@@ -908,10 +973,81 @@ small {
 .bg-warning {
     background-color: #ffc107 !important;
     color: #000 !important;
+=======
+.modal-lg {
+    max-width: 800px;
+}
+
+.document-links {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.doc-link {
+    color: #17a2b8;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 0;
+}
+
+.doc-link:hover {
+    color: #138496;
+    text-decoration: underline;
+}
+
+.doc-link i {
+    font-size: 14px;
+}
+
+.document-section {
+    margin-top: 10px;
+}
+
+.document-links {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.doc-link {
+    color: #17a2b8;
+    text-decoration: none;
+}
+
+.doc-link:hover {
+    text-decoration: underline;
+}
+
+.btn-info {
+    background-color: #17a2b8;
+    color: white;
+}
+
+.card-header {
+    padding: 1rem;
+}
+
+.card-header h4 {
+    margin: 0;
+    font-size: 1.2rem;
+}
+
+.card {
+    margin-bottom: 2rem;
+    box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+}
+
+.bg-dark {
+    background-color: #000000 !important;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 }
 
 .bg-danger {
     background-color: #dc3545 !important;
+<<<<<<< HEAD
 }
 
 .bg-secondary {
@@ -1020,12 +1156,16 @@ small {
 
 .view-all-link:hover {
     background-color: #e9ecef;
+=======
+    color: white;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 }
     </style>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body>
     <div class="sidebar">
+<<<<<<< HEAD
         <h3 style="background-color: #000000;">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Perfume Paradise</h3>
         <a href="admindashboard.php" class="<?php echo $view == 'dashboard' ? 'active' : ''; ?>">
             <i class="fas fa-tachometer-alt"></i> Dashboard
@@ -1067,6 +1207,18 @@ small {
         <a href="logout.php">
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
+=======
+        <h2 style="background-color: #000000;">Perfume Paradise</h2>
+        <a href="admindashboard.php" class="<?php echo $view == 'dashboard' ? 'active' : ''; ?>">Dashboard</a>
+        <a href="admindashboard.php?view=users" class="<?php echo $view == 'users' ? 'active' : ''; ?>">Manage Users</a>
+        <a href="admindashboard.php?view=sellers" class="<?php echo $view == 'sellers' ? 'active' : ''; ?>">Manage Sellers</a>
+        <a href="admindashboard.php?view=verify-sellers" class="<?php echo $view == 'verify-sellers' ? 'active' : ''; ?>">Verify Sellers</a>
+        <a href="admindashboard.php?view=orders" class="<?php echo $view == 'orders' ? 'active' : ''; ?>">View Orders</a>
+        <a href="manage-categories.php">Manage Categories</a>
+        <a href="customer_reviews.php">Customer Reviews</a>
+        <a href="index.php">Home</a>
+        <a href="logout.php">Logout</a>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     </div>
 
     <div class="main-content">
@@ -1082,6 +1234,7 @@ small {
             <div class="alert alert-error">An error occurred. Please try again.</div>
         <?php } ?>
 
+<<<<<<< HEAD
         <div class="notification-bell">
             <i class="fas fa-bell notification-icon"></i>
             <?php if ($total_notifications > 0): ?>
@@ -1127,8 +1280,168 @@ small {
                 <?php else: ?>
                     <div class="notification-item">No new notifications</div>
                 <?php endif; ?>
+=======
+        <?php if ($view == 'dashboard'): ?>
+            <!-- Dashboard Stats -->
+            <div class="stats-container">
+                <div class="stat-box">
+                    <h3>Total Users</h3>
+                    <div class="number"><?php echo $totalUsers; ?></div>
+                    <div class="details">
+                        <span>Active: <?php echo $activeUsers; ?></span>
+                        <span>Inactive: <?php echo $inactiveUsers; ?></span>
+                    </div>
+                </div>
+
+                <div class="stat-box">
+                    <h3>Total Sellers</h3>
+                    <div class="number"><?php echo $totalSellers; ?></div>
+                    <div class="details">
+                        <span>Active: <?php echo $activeSellers; ?></span>
+                        <span>Inactive: <?php echo $inactiveSellers; ?></span>
+                    </div>
+                </div>
+
+                <div class="stat-box">
+                    <h3>Total Orders</h3>
+                    <div class="number"><?php echo $totalOrders; ?></div>
+                    <div class="details">
+                        <span>Processing: <?php echo $processingOrders; ?></span>
+                        <span>Completed: <?php echo $completedOrders; ?></span>
+                    </div>
+                </div>
             </div>
-        </div>
+
+            <!-- Recent Orders Section -->
+            <div class="section">
+                <h2>View Orders</h2>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Product</th>
+                                <th>Customer Details</th>
+                                <th>Shipping Address</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php 
+                            // Query for recent orders (limited to 5)
+                            $recent_orders_query = "SELECT DISTINCT 
+                                o.*,
+                                s.username as customer_name,
+                                s.email as customer_email,
+                                p.name as product_name,
+                                pt.payment_status
+                                FROM orders_table o
+                                LEFT JOIN tbl_signup s ON o.Signup_id = s.Signup_id
+                                LEFT JOIN tbl_product p ON o.product_id = p.product_id
+                                LEFT JOIN payment_table pt ON o.payment_id = pt.payment_id
+                                ORDER BY o.created_at DESC
+                                LIMIT 5";
+                            
+                            $recent_orders_result = mysqli_query($conn, $recent_orders_query);
+                            
+                            if (!$recent_orders_result) {
+                                echo "<tr><td colspan='9' class='text-center'>Error fetching orders: " . mysqli_error($conn) . "</td></tr>";
+                            } elseif (mysqli_num_rows($recent_orders_result) == 0) {
+                                echo "<tr><td colspan='9' class='text-center'>No orders found</td></tr>";
+                            } else {
+                                while ($order = mysqli_fetch_assoc($recent_orders_result)): 
+                                ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($order['order_id']); ?></td>
+                                        <td><?php echo htmlspecialchars($order['product_name']); ?></td>
+                                        <td>
+                                            <?php echo htmlspecialchars($order['customer_name']); ?><br>
+                                            <small><?php echo htmlspecialchars($order['customer_email']); ?></small>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                            $address = nl2br(htmlspecialchars($order['shipping_address']));
+                                            echo $address;
+                                            ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($order['quantity']); ?></td>
+                                        <td>₹<?php echo htmlspecialchars($order['total_amount']); ?></td>
+                                        <td>
+                                            <?php 
+                                            if ($order['order_status'] === 'Cancelled') {
+                                                // Red badge for cancelled orders
+                                                echo '<span class="badge bg-danger">Cancelled</span>';
+                                            } else {
+                                                // Original logic for other statuses
+                                                echo '<span class="badge ' . (($order['payment_status'] ?? '') === 'paid' ? 'bg-success' : 'bg-warning') . '">';
+                                                echo ($order['payment_status'] ?? '') === 'paid' ? 'completed' : htmlspecialchars($order['order_status']);
+                                                echo '</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars(date('d M Y', strtotime($order['created_at']))); ?></td>
+                                        <td class="actions">
+                                            <a href="view_order_details.php?order_id=<?php echo urlencode($order['order_id']); ?>" 
+                                               class="btn btn-primary btn-sm">View Details</a>
+                                        </td>
+                                    </tr>
+                                <?php endwhile;
+                            }
+                            ?>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- View All Orders Link -->
+                <div class="text-right mt-3">
+                    <a href="admindashboard.php?view=orders" class="btn btn-primary">
+                        View All Orders
+                    </a>
+                </div>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+            </div>
+
+            <!-- Additional styles for the dashboard -->
+            <style>
+                .section {
+                    background: white;
+                    padding: 20px;
+                    border-radius: 8px;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+                    margin-top: 30px;
+                }
+
+                .section h2 {
+                    margin-bottom: 20px;
+                    color: #333;
+                }
+
+                .text-right {
+                    text-align: right;
+                }
+
+                .mt-3 {
+                    margin-top: 15px;
+                }
+
+                .btn-primary {
+                    background-color: #007bff;
+                    color: white;
+                    padding: 8px 16px;
+                    border-radius: 4px;
+                    text-decoration: none;
+                    display: inline-block;
+                }
+
+                .btn-primary:hover {
+                    background-color: #0056b3;
+                }
+            </style>
+        <?php endif; ?>
 
         <?php if ($view == 'dashboard'): ?>
             <!-- Dashboard Stats -->
@@ -1425,12 +1738,16 @@ small {
 
         <?php if ($view == 'orders'): ?>
             <div class="section">
+<<<<<<< HEAD
                 <div class="section-header">
                     <h2>&nbsp;View Orders</h2>
                     <a href="export.php?type=orders" class="btn btn-success">
                         <i class="fas fa-file-excel"></i>Download Orders Report
                     </a>
                 </div>
+=======
+                <h2>View Orders</h2>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
@@ -1447,9 +1764,15 @@ small {
                             </tr>
                         </thead>
                         <tbody>
+<<<<<<< HEAD
                             <?php
                             // Corrected query to use payment_table for payment_status
                             $orders_query = "SELECT DISTINCT
+=======
+                            <?php 
+                            // Corrected query to use payment_table for payment_status
+                            $orders_query = "SELECT DISTINCT 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                 o.*,
                                 s.username as customer_name,
                                 s.email as customer_email,
@@ -1460,15 +1783,25 @@ small {
                                 LEFT JOIN tbl_product p ON o.product_id = p.product_id
                                 LEFT JOIN payment_table pt ON o.payment_id = pt.payment_id
                                 ORDER BY o.created_at DESC";
+<<<<<<< HEAD
                            
                             $orders_result = mysqli_query($conn, $orders_query);
                            
+=======
+                            
+                            $orders_result = mysqli_query($conn, $orders_query);
+                            
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                             if (!$orders_result) {
                                 echo "<tr><td colspan='9' class='text-center'>Error fetching orders: " . mysqli_error($conn) . "</td></tr>";
                             } elseif (mysqli_num_rows($orders_result) == 0) {
                                 echo "<tr><td colspan='9' class='text-center'>No orders found</td></tr>";
                             } else {
+<<<<<<< HEAD
                                 while ($order = mysqli_fetch_assoc($orders_result)):
+=======
+                                while ($order = mysqli_fetch_assoc($orders_result)): 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                 ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($order['order_id']); ?></td>
@@ -1478,7 +1811,11 @@ small {
                                             <small><?php echo htmlspecialchars($order['customer_email']); ?></small>
                                         </td>
                                         <td>
+<<<<<<< HEAD
                                             <?php
+=======
+                                            <?php 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                             $address = nl2br(htmlspecialchars($order['shipping_address']));
                                             echo $address;
                                             ?>
@@ -1486,7 +1823,11 @@ small {
                                         <td><?php echo htmlspecialchars($order['quantity']); ?></td>
                                         <td>₹<?php echo htmlspecialchars($order['total_amount']); ?></td>
                                         <td>
+<<<<<<< HEAD
                                             <?php
+=======
+                                            <?php 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                             if ($order['order_status'] === 'Cancelled') {
                                                 // Red badge for cancelled orders
                                                 echo '<span class="badge bg-danger">Cancelled</span>';
@@ -1500,7 +1841,11 @@ small {
                                         </td>
                                         <td><?php echo htmlspecialchars(date('d M Y', strtotime($order['created_at']))); ?></td>
                                         <td class="actions">
+<<<<<<< HEAD
                                             <a href="view_order_details.php?order_id=<?php echo urlencode($order['order_id']); ?>"
+=======
+                                            <a href="view_order_details.php?order_id=<?php echo urlencode($order['order_id']); ?>" 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                                class="btn btn-primary btn-sm">View Details</a>
                                         </td>
                                     </tr>
@@ -1516,7 +1861,11 @@ small {
         <?php if ($view == 'verify-sellers'): ?>
             <div class="container-fluid px-4">
                 <h1 class="mt-4">Seller Management</h1>
+<<<<<<< HEAD
                
+=======
+                
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 <!-- Pending Verification Requests -->
                 <div class="card mb-4">
                     <div class="card-header">
@@ -1534,6 +1883,7 @@ small {
                                 </tr>
                             </thead>
                             <tbody>
+<<<<<<< HEAD
                                 <?php if ($pending_verification_result->num_rows > 0): ?>
                                     <?php while ($seller = $pending_verification_result->fetch_assoc()): ?>
                                         <tr data-seller-id="<?php echo $seller['seller_id']; ?>">
@@ -1578,6 +1928,43 @@ small {
                                         </tr>
                                     <?php endwhile; ?>
                                 <?php else: ?>
+=======
+                                <?php
+                                $pending_query = "SELECT s.*, sg.username, sg.email, sg.phoneno 
+                                                FROM tbl_seller s 
+                                                JOIN tbl_signup sg ON s.Signup_id = sg.Signup_id 
+                                                WHERE s.verification_status = 'pending'";
+                                $pending_result = $conn->query($pending_query);
+                                
+                                if ($pending_result->num_rows > 0):
+                                    while($seller = $pending_result->fetch_assoc()):
+                                ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($seller['username']); ?></td>
+                                        <td><?php echo htmlspecialchars($seller['email']); ?></td>
+                                        <td><?php echo htmlspecialchars($seller['phoneno']); ?></td>
+                                        <td>
+                                            <a href="<?php echo htmlspecialchars($seller['document_path']); ?>" 
+                                               target="_blank" class="btn btn-sm btn-info">
+                                                <i class="fas fa-file-alt"></i> View Documents
+                                            </a>
+                                        </td>
+                                        <td>
+                                            <button class="btn btn-sm btn-success" 
+                                                    onclick="verifySeller(<?php echo $seller['seller_id']; ?>, 'verified')">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                            <button class="btn btn-sm btn-danger" 
+                                                    onclick="verifySeller(<?php echo $seller['seller_id']; ?>, 'rejected')">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </td>
+                                    </tr>
+                                <?php 
+                                    endwhile;
+                                else:
+                                ?>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                     <tr>
                                         <td colspan="5" class="text-center">No pending verification requests</td>
                                     </tr>
@@ -1609,6 +1996,7 @@ small {
                             <tbody>
                                 <?php
                                 $verified_query = "
+<<<<<<< HEAD
                                     SELECT
                                         s.seller_id,
                                         s.Sellername,
@@ -1616,12 +2004,22 @@ small {
                                         s.created_at,
                                         sg.username,
                                         sg.email,
+=======
+                                    SELECT 
+                                        s.seller_id,
+                                        s.Sellername,
+                                        s.verification_status,
+                                        s.created_at,
+                                        sg.username, 
+                                        sg.email, 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                         sg.phoneno,
                                         svd.id_proof_front,
                                         svd.id_proof_back,
                                         svd.business_proof,
                                         svd.address_proof,
                                         (SELECT COUNT(*) FROM tbl_product WHERE seller_id = s.seller_id) as total_products,
+<<<<<<< HEAD
                                         (SELECT COUNT(*) FROM orders_table o
                                          JOIN tbl_product p ON o.product_id = p.product_id
                                          WHERE p.seller_id = s.seller_id) as total_orders
@@ -1634,6 +2032,26 @@ small {
                                
                                 if ($verified_result && $verified_result->num_rows > 0):
                                     while($seller = $verified_result->fetch_assoc()):
+=======
+                                        (SELECT COUNT(*) FROM orders_table o 
+                                         JOIN tbl_product p ON o.product_id = p.product_id 
+                                         WHERE p.seller_id = s.seller_id) as total_orders
+                                    FROM tbl_seller s 
+                                    JOIN tbl_signup sg ON s.Signup_id = sg.Signup_id 
+                                    LEFT JOIN seller_verification_docs svd ON s.seller_id = svd.seller_id
+                                    WHERE s.verification_status = 'active'
+                                    ORDER BY s.created_at DESC";
+                                
+                                $verified_result = $conn->query($verified_query);
+                                
+                                if ($verified_result && $verified_result->num_rows > 0):
+                                    while($seller = $verified_result->fetch_assoc()):
+                                        // Check if any documents exist
+                                        $hasDocuments = !empty($seller['id_proof_front']) || 
+                                                      !empty($seller['id_proof_back']) || 
+                                                      !empty($seller['business_proof']) || 
+                                                      !empty($seller['address_proof']);
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                 ?>
                                     <tr>
                                         <td><?php echo htmlspecialchars($seller['username']); ?></td>
@@ -1651,6 +2069,7 @@ small {
                                         </td>
                                         <td><?php echo date('d M Y', strtotime($seller['created_at'])); ?></td>
                                         <td>
+<<<<<<< HEAD
                                             <?php
                                             switch($seller['verified_status']) {
                                                 case 'verified':
@@ -1676,11 +2095,71 @@ small {
                                         </td>
                                     </tr>
                                 <?php
+=======
+                                            <span class="badge bg-success">Active</span>
+                                        </td>
+                                        <td>
+                                            <button type="button" 
+                                                    class="btn btn-info btn-sm view-details" 
+                                                    onclick="toggleDocuments(<?php echo $seller['seller_id']; ?>)">
+                                                View Details
+                                            </button>
+                                            
+                                            <div id="documents-<?php echo $seller['seller_id']; ?>" class="document-section" style="display: none;">
+                                                <h6 class="mt-3">Seller Documents</h6>
+                                                <div class="document-links">
+                                                    <?php if (!empty($seller['id_proof_front'])): ?>
+                                                        <a href="<?php echo htmlspecialchars($seller['id_proof_front']); ?>" 
+                                                           target="_blank" 
+                                                           class="doc-link">
+                                                            ID Proof Front
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <?php if (!empty($seller['id_proof_back'])): ?>
+                                                        <a href="<?php echo htmlspecialchars($seller['id_proof_back']); ?>" 
+                                                           target="_blank" 
+                                                           class="doc-link">
+                                                            ID Proof Back
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <?php if (!empty($seller['business_proof'])): ?>
+                                                        <a href="<?php echo htmlspecialchars($seller['business_proof']); ?>" 
+                                                           target="_blank" 
+                                                           class="doc-link">
+                                                            Business Proof
+                                                        </a>
+                                                    <?php endif; ?>
+
+                                                    <?php if (!empty($seller['address_proof'])): ?>
+                                                        <a href="<?php echo htmlspecialchars($seller['address_proof']); ?>" 
+                                                           target="_blank" 
+                                                           class="doc-link">
+                                                            Address Proof
+                                                        </a>
+                                                    <?php endif; ?>
+                                                    
+                                                    <button type="button" 
+                                                            class="btn btn-secondary btn-sm mt-2" 
+                                                            onclick="toggleDocuments(<?php echo $seller['seller_id']; ?>)">
+                                                        Close
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                     endwhile;
                                 else:
                                 ?>
                                     <tr>
+<<<<<<< HEAD
                                         <td colspan="8" class="text-center">No sellers found</td>
+=======
+                                        <td colspan="8" class="text-center">No verified sellers found</td>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                                     </tr>
                                 <?php endif; ?>
                             </tbody>
@@ -1692,23 +2171,30 @@ small {
             <script>
                 function verifySeller(sellerId, status) {
                     if (confirm('Are you sure you want to ' + status + ' this seller?')) {
+<<<<<<< HEAD
                         // Show loading indicator
                         const row = document.querySelector(`tr[data-seller-id="${sellerId}"]`);
                         if (row) {
                             row.style.opacity = '0.5';
                         }
 
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                         fetch('verify_seller.php', {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
+<<<<<<< HEAD
                                 'Accept': 'application/json'
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                             },
                             body: JSON.stringify({
                                 seller_id: sellerId,
                                 status: status
                             })
                         })
+<<<<<<< HEAD
                         .then(response => {
                             // Check if response is JSON
                             const contentType = response.headers.get('content-type');
@@ -1744,10 +2230,19 @@ small {
                                 }
                             } else {
                                 throw new Error(data.message || 'Failed to update seller status');
+=======
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                location.reload();
+                            } else {
+                                alert('Error: ' + data.message);
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
+<<<<<<< HEAD
                             // Show error message to user
                             const alertDiv = document.createElement('div');
                             alertDiv.className = 'alert alert-danger';
@@ -1761,11 +2256,15 @@ small {
                             if (row) {
                                 row.style.opacity = '1';
                             }
+=======
+                            alert('An error occurred while processing your request.');
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                         });
                     }
                 }
 
                 function toggleDocuments(sellerId) {
+<<<<<<< HEAD
                     // Get the modal
                     const modal = document.getElementById('documentModal');
                    
@@ -1818,6 +2317,15 @@ small {
                         }
                     }
                 });
+=======
+                    const docSection = document.getElementById(`documents-${sellerId}`);
+                    if (docSection.style.display === 'none') {
+                        docSection.style.display = 'block';
+                    } else {
+                        docSection.style.display = 'none';
+                    }
+                }
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             </script>
         <?php endif; ?>
     </div>

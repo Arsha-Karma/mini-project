@@ -35,6 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['google_login'])) {
             
             if ($user['verification_status'] === 'disabled') {
                 echo json_encode(['error' => 'Account is disabled']);
+<<<<<<< HEAD
                 exit();
             }
 
@@ -81,6 +82,30 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['google_login'])) {
                 header("Location: index.php");
                 exit();
             }
+=======
+                exit();
+            }
+
+            // Set session variables
+            $_SESSION['user_id'] = $user['Signup_id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role_type'];
+            $_SESSION['logged_in'] = true;
+            
+            // Determine redirect URL based on role
+            switch ($user['role_type']) {
+                case 'admin':
+                    echo json_encode(['success' => true, 'redirect' => 'admindashboard.php']);
+                    break;
+                case 'seller':
+                    echo json_encode(['success' => true, 'redirect' => 'seller-dashboard.php']);
+                    break;
+                default:
+                    echo json_encode(['success' => true, 'redirect' => 'index.php']);
+                    break;
+            }
+            exit();
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         } else {
             // Create new user as regular user
             $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', explode('@', $google_email)[0])) . rand(100, 999);

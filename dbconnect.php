@@ -452,6 +452,7 @@ if ($conn->query($sql) === TRUE) {
     } catch (Exception $e) {
         error_log("Error altering payment_table: " . $e->getMessage());
     }
+<<<<<<< HEAD
 
     // Add gift_option columns to orders_table
     $alter_orders_table = "ALTER TABLE orders_table 
@@ -528,6 +529,8 @@ if ($conn->query($sql) === TRUE) {
     $sql_add_is_deleted = "ALTER TABLE contact_messages 
                           ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0";
     $conn->query($sql_add_is_deleted);
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 }
 
 // Helper Functions

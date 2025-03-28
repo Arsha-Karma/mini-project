@@ -148,6 +148,7 @@ $reviews = $stmt->get_result();
             margin-bottom: 30px;
             text-align: center;
         }
+<<<<<<< HEAD
 
         /* Add sidebar styles */
         .sidebar {
@@ -270,6 +271,12 @@ $reviews = $stmt->get_result();
             <i class="fas fa-sign-out-alt"></i> Logout
         </a>
     </div>
+=======
+    </style>
+</head>
+<body>
+    <?php include 'header.php'; ?>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 
     <div class="reviews-container">
         <h1>Customer Reviews</h1>
@@ -333,6 +340,7 @@ $reviews = $stmt->get_result();
             </div>
         <?php endif; ?>
     </div>
+<<<<<<< HEAD
 
     <script>
         // Add this to highlight current page in sidebar
@@ -349,3 +357,7 @@ $reviews = $stmt->get_result();
     </script>
 </body>
 </html>
+=======
+</body>
+</html> 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e

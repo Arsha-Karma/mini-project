@@ -8,6 +8,7 @@ if (!isset($_SESSION['user_id'])) {
 }
 
 $user_id = $_SESSION['user_id'];
+<<<<<<< HEAD
 $filter = isset($_GET['filter']) ? $_GET['filter'] : 'all';
 
 // Fetch all orders for the user with payment details
@@ -38,6 +39,17 @@ switch($filter) {
 }
 
 $order_query .= "ORDER BY o.created_at DESC";
+=======
+
+// Fetch all orders for the user with payment details
+$order_query = "SELECT o.*, p.payment_status, p.payment_id, p.amount,
+                       pr.product_id, pr.name as product_name 
+                FROM orders_table o
+                LEFT JOIN payment_table p ON o.order_id = p.order_id
+                LEFT JOIN tbl_product pr ON o.product_id = pr.product_id
+                WHERE o.Signup_id = ?
+                ORDER BY o.created_at DESC";
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 $stmt = $conn->prepare($order_query);
 $stmt->bind_param("i", $user_id);
 $stmt->execute();
@@ -133,7 +145,11 @@ $orders_result = $stmt->get_result();
 
         .item-grid {
             display: grid;
+<<<<<<< HEAD
             grid-template-columns: 80px 1fr;
+=======
+            grid-template-columns: 80px 2fr 1fr 1fr;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             gap: 15px;
             align-items: center;
             padding: 10px 0;
@@ -435,6 +451,7 @@ $orders_result = $stmt->get_result();
         .btn-warning:hover {
             background-color: #e0a800;
         }
+<<<<<<< HEAD
 
         select {
             appearance: none;
@@ -511,6 +528,8 @@ $orders_result = $stmt->get_result();
             font-weight: 500;
             text-align: right;
         }
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     </style>
 </head>
 <body>
@@ -537,6 +556,7 @@ $orders_result = $stmt->get_result();
 
         <h1 class="page-title">My Orders</h1>
 
+<<<<<<< HEAD
         <div style="text-align: right; margin-bottom: 20px;">
             <form action="" method="GET" style="display: inline-block;">
                 <select name="filter" onchange="this.form.submit()" style="padding: 8px; border-radius: 4px; border: 1px solid #ddd;">
@@ -553,6 +573,12 @@ $orders_result = $stmt->get_result();
             <?php while ($order = $orders_result->fetch_assoc()): 
                 // Fetch order items with all necessary details
                 $items_query = "SELECT o.*, p.name as product_name, p.price, o.gift_wrap_charge, o.gift_option, o.gift_wrap_type 
+=======
+        <?php if ($orders_result->num_rows > 0): ?>
+            <?php while ($order = $orders_result->fetch_assoc()): 
+                // Fetch order items
+                $items_query = "SELECT o.*, p.name as product_name, p.price 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                               FROM orders_table o
                               JOIN tbl_product p ON o.product_id = p.product_id 
                               WHERE o.order_id = ?";
@@ -560,10 +586,13 @@ $orders_result = $stmt->get_result();
                 $stmt->bind_param("s", $order['order_id']);
                 $stmt->execute();
                 $items = $stmt->get_result();
+<<<<<<< HEAD
 
                 // Initialize variables for calculations
                 $subtotal = 0;
                 $total_gift_wrap = 0;
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             ?>
                 <div class="order-card">
                     <div class="order-header">
@@ -577,6 +606,7 @@ $orders_result = $stmt->get_result();
                     </div>
 
                     <div class="order-items">
+<<<<<<< HEAD
                         <?php while ($item = $items->fetch_assoc()): 
                             $item_total = $item['price'] * $item['quantity'];
                             $subtotal += $item_total;
@@ -586,6 +616,9 @@ $orders_result = $stmt->get_result();
                                 $total_gift_wrap += floatval($item['gift_wrap_charge']);
                             }
                         ?>
+=======
+                        <?php while ($item = $items->fetch_assoc()): ?>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                             <div class="item-grid">
                                 <div class="product-image">
                                     <img src="<?php echo htmlspecialchars($item['image_path']); ?>" 
@@ -594,6 +627,7 @@ $orders_result = $stmt->get_result();
                                 <div>
                                     <strong><?php echo htmlspecialchars($item['product_name']); ?></strong>
                                     <div>Quantity: <?php echo $item['quantity']; ?></div>
+<<<<<<< HEAD
                                     <?php if ($item['gift_option']): ?>
                                         <div class="gift-wrap-info">
                                             <small>(Gift Wrapped - <?php echo ucfirst($item['gift_wrap_type']); ?>)</small>
@@ -633,6 +667,13 @@ $orders_result = $stmt->get_result();
                                 <span class="summary-value">₹<?php echo number_format($total_amount, 2); ?></span>
                             </div>
                         </div>
+=======
+                                </div>
+                                <div>₹<?php echo number_format($item['price'], 2); ?></div>
+                                <div>₹<?php echo number_format($item['total_amount'], 2); ?></div>
+                            </div>
+                        <?php endwhile; ?>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                     </div>
 
                     <div class="order-actions">

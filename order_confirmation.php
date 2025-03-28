@@ -9,6 +9,7 @@ if (!isset($_SESSION['user_id'])) {
 
 $user_id = $_SESSION['user_id'];
 
+<<<<<<< HEAD
 // Check if order_id is provided in URL
 if (isset($_GET['order_id'])) {
     $order_id = $_GET['order_id'];
@@ -38,6 +39,17 @@ if (!$payment) {
     header("Location: orders.php");
     exit();
 }
+=======
+// Fetch latest payment details
+$payment_query = "SELECT * FROM payment_table 
+                 WHERE Signup_id = ? AND payment_status = 'paid'
+                 ORDER BY created_at DESC LIMIT 1";
+$stmt = $conn->prepare($payment_query);
+$stmt->bind_param("i", $user_id);
+$stmt->execute();
+$payment_result = $stmt->get_result();
+$payment = $payment_result->fetch_assoc();
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 
 // Get user details
 $user_query = "SELECT * FROM tbl_signup WHERE Signup_id = ?";
@@ -47,6 +59,7 @@ $stmt->execute();
 $user_result = $stmt->get_result();
 $user = $user_result->fetch_assoc();
 
+<<<<<<< HEAD
 // Fetch order details with products - use the order_id from URL or from payment
 $order_id_to_use = isset($_GET['order_id']) ? $_GET['order_id'] : $payment['order_id'];
 
@@ -122,6 +135,41 @@ if (abs($total_amount - $payment['amount']) > 0.01) {
 
 // Debug logging
 error_log("Calculation - Subtotal: {$subtotal}, Shipping: {$shipping}, Tax: {$tax}, Gift: {$gift_wrap_charge}, Total: {$total_amount}, Payment: {$payment['amount']}");
+=======
+// Fetch order details with products
+$order_query = "SELECT o.*, p.name as product_name, p.price, o.image_path 
+                FROM orders_table o
+                JOIN tbl_product p ON o.product_id = p.product_id 
+                WHERE o.Signup_id = ? AND o.order_id = ?
+                ORDER BY o.created_at DESC";
+$stmt = $conn->prepare($order_query);
+$stmt->bind_param("is", $user_id, $payment['order_id']);
+$stmt->execute();
+$order_items = $stmt->get_result();
+
+// Calculate totals
+$subtotal = 0;
+$items = array();
+$shipping_address = '';
+while ($item = $order_items->fetch_assoc()) {
+    $items[] = $item;
+    $subtotal += $item['total_amount'];
+    if (empty($shipping_address)) {
+        $shipping_address = $item['shipping_address'];
+    }
+}
+
+// Calculate shipping and tax
+$shipping = $subtotal >= 1000 ? 0 : 50;
+$tax = $subtotal * 0.05; // 5% tax
+$total_amount = $subtotal + $shipping + $tax;
+
+// If no items found, redirect to home page
+if (empty($items)) {
+    header("Location: index.php");
+    exit();
+}
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 ?>
 
 <!DOCTYPE html>
@@ -324,6 +372,7 @@ error_log("Calculation - Subtotal: {$subtotal}, Shipping: {$shipping}, Tax: {$ta
             <div class="info-grid">
                 <div class="info-item">
                     <div class="info-label">Order ID</div>
+<<<<<<< HEAD
                     <div class="info-value"><?php echo htmlspecialchars($payment['order_id'] ?? 'N/A'); ?></div>
                 </div>
                 <div class="info-item">
@@ -333,11 +382,26 @@ error_log("Calculation - Subtotal: {$subtotal}, Shipping: {$shipping}, Tax: {$ta
                 <div class="info-item">
                     <div class="info-label">Amount Paid</div>
                     <div class="info-value">₹<?php echo number_format($payment['amount'] ?? 0, 2); ?></div>
+=======
+                    <div class="info-value"><?php echo htmlspecialchars($payment['order_id']); ?></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Payment ID</div>
+                    <div class="info-value"><?php echo htmlspecialchars($payment['payment_id']); ?></div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Amount Paid</div>
+                    <div class="info-value">₹<?php echo number_format($payment['amount'], 2); ?></div>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                 </div>
                 <div class="info-item">
                     <div class="info-label">Payment Status</div>
                     <div class="info-value">
+<<<<<<< HEAD
                         <span class="status-paid"><?php echo htmlspecialchars($payment['payment_status'] ?? 'N/A'); ?></span>
+=======
+                        <span class="status-paid">Paid</span>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                     </div>
                 </div>
             </div>
@@ -374,7 +438,11 @@ error_log("Calculation - Subtotal: {$subtotal}, Shipping: {$shipping}, Tax: {$ta
                             <td><?php echo htmlspecialchars($item['product_name']); ?></td>
                             <td><?php echo $item['quantity']; ?></td>
                             <td>₹<?php echo number_format($item['price'], 2); ?></td>
+<<<<<<< HEAD
                             <td>₹<?php echo number_format($item['quantity'] * $item['price'], 2); ?></td>
+=======
+                            <td>₹<?php echo number_format($item['total_amount'], 2); ?></td>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                         </tr>
                     <?php endforeach; ?>
                     <tr>
@@ -389,12 +457,15 @@ error_log("Calculation - Subtotal: {$subtotal}, Shipping: {$shipping}, Tax: {$ta
                         <td colspan="4" class="text-right">Tax (5%)</td>
                         <td>₹<?php echo number_format($tax, 2); ?></td>
                     </tr>
+<<<<<<< HEAD
                     <?php if ($gift_wrap_charge > 0): ?>
                         <tr>
                             <td colspan="4" class="text-right">Gift Wrap (<?php echo htmlspecialchars($gift_wrap_type); ?>)</td>
                             <td>₹<?php echo number_format($gift_wrap_charge, 2); ?></td>
                         </tr>
                     <?php endif; ?>
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
                     <tr class="total-row">
                         <td colspan="4" class="text-right"><strong>Total Amount</strong></td>
                         <td><strong>₹<?php echo number_format($total_amount, 2); ?></strong></td>

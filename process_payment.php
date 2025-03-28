@@ -64,6 +64,7 @@ try {
     $postal_code = $_POST['postal_code'] ?? '';
     $is_buy_now = isset($_POST['is_buy_now']) && $_POST['is_buy_now'] === '1';
     $product_id = $_POST['product_id'] ?? null;
+<<<<<<< HEAD
     
     // Get gift options
     $gift_option = isset($_POST['gift_option']) && $_POST['gift_option'] === '1';
@@ -83,6 +84,8 @@ try {
                 break;
         }
     }
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
 
     // Validate required fields
     if (empty($razorpay_payment_id) || empty($order_id) || $amount <= 0) {
@@ -92,7 +95,11 @@ try {
     // Create shipping address string
     $shipping_address = "$fullname\n$address\n$city - $postal_code\nPhone: $phone";
 
+<<<<<<< HEAD
     // Insert into payment_table with gift wrap details
+=======
+    // Insert into payment_table
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     $insert_payment = $conn->prepare("
         INSERT INTO payment_table (
             order_id, 
@@ -108,7 +115,11 @@ try {
         $order_id,
         $user_id,
         $razorpay_payment_id,
+<<<<<<< HEAD
         $amount  // This now includes the gift wrap charge from frontend
+=======
+        $amount
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
     );
 
     if (!$insert_payment->execute()) {
@@ -132,10 +143,14 @@ try {
             throw new Exception("Product not found");
         }
 
+<<<<<<< HEAD
         // Calculate total with gift wrap
         $item_total = $product['price'] + $gift_wrap_charge;
 
         // Insert into orders_table for "Buy Now" with gift details
+=======
+        // Insert into orders_table for "Buy Now"
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         $insert_order = $conn->prepare("
             INSERT INTO orders_table (
                 order_id,
@@ -147,6 +162,7 @@ try {
                 payment_status,
                 product_id,
                 image_path,
+<<<<<<< HEAD
                 quantity,
                 gift_option,
                 gift_message,
@@ -156,11 +172,22 @@ try {
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ");
 
+=======
+                quantity
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ");
+
+        $item_total = $product['price']; // Quantity is 1 for "Buy Now"
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         $order_status = 'processing';
         $payment_status = 'paid';
         $quantity = 1;
 
+<<<<<<< HEAD
         $insert_order->bind_param("sssdsssississsd",
+=======
+        $insert_order->bind_param("sssdsssisd",
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
             $order_id,
             $user_id,
             $razorpay_payment_id,
@@ -170,12 +197,16 @@ try {
             $payment_status,
             $product_id,
             $product['image_path'],
+<<<<<<< HEAD
             $quantity,
             $gift_option,
             $gift_message,
             $gift_wrap_type,
             $gift_recipient,
             $gift_wrap_charge
+=======
+            $quantity
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
         );
 
         if (!$insert_order->execute()) {
@@ -306,4 +337,8 @@ try {
     header("Location: checkout.php?error=" . urlencode($e->getMessage()));
     exit();
 }
+<<<<<<< HEAD
 ?>
+=======
+?>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e

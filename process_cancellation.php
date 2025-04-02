@@ -25,6 +25,32 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     try {
         $conn->begin_transaction();
         
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+        // Get product and quantity from the order
+        $order_query = "SELECT product_id, quantity FROM orders_table WHERE order_id = ?";
+        $stmt = $conn->prepare($order_query);
+        $stmt->bind_param("s", $order_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $order_data = $result->fetch_assoc();
+        
+        if (!$order_data) {
+            throw new Exception("Order not found");
+        }
+        
+        $product_id = $order_data['product_id'];
+        $quantity_to_restock = $order_data['quantity'];
+        
+        // Restock the product
+        $update_product = $conn->prepare("UPDATE tbl_product SET Stock_quantity = Stock_quantity + ? WHERE product_id = ?");
+        $update_product->bind_param("ii", $quantity_to_restock, $product_id);
+        $update_product->execute();
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         // First, check the payment status and details
         $check_url = 'https://api.razorpay.com/v1/payments/' . $payment_id;
         
@@ -115,14 +141,30 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
         
+<<<<<<< HEAD
         // Update order status regardless of refund status
+=======
+<<<<<<< HEAD
+        // Update order status regardless of refund status
+=======
+        // Update order status to Cancelled
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         $update_order = $conn->prepare("UPDATE orders_table SET order_status = 'Cancelled', 
                                       cancellation_reason = ?, cancelled_at = NOW() 
                                       WHERE order_id = ?");
         $update_order->bind_param("ss", $reason, $order_id);
         $update_order->execute();
         
+<<<<<<< HEAD
         // Update payment status (removed refund_notes)
+=======
+<<<<<<< HEAD
+        // Update payment status (removed refund_notes)
+=======
+        // Update payment table
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         $update_payment = $conn->prepare("UPDATE payment_table SET 
                                         refund_status = ?,
                                         refund_id = ?,
@@ -132,6 +174,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $update_payment->bind_param("ssds", $refund_status, $refund_id, $amount, $payment_id);
         $update_payment->execute();
         
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         // Commit transaction
         $conn->commit();
         
@@ -146,6 +192,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error_log("Manual refund needed for Order #$order_id (Payment ID: $payment_id). Amount: $amount");
         }
         
+<<<<<<< HEAD
+=======
+=======
+        $conn->commit();
+        
+        $_SESSION['success'] = "Order cancelled successfully.The refund will be processed manually .";
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         header('Location: orders.php');
         exit();
         

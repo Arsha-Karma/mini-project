@@ -308,6 +308,31 @@ try {
             background: #1c5ac7;
         }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+        @media (max-width: 768px) {
+            .checkout-container {
+                grid-template-columns: 1fr;
+            }
+            .item-image {
+                width: 50px;
+                height: 50px;
+            }
+            
+            .item-name {
+                font-size: 13px;
+            }
+            
+            .item-price {
+                font-size: 13px;
+            }
+        }
+
+        /* Add these new styles to your existing style section */
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         .btn-secondary {
             background: #6c757d;
             color: white;
@@ -329,6 +354,10 @@ try {
         .btn-secondary i {
             font-size: 16px;
         }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
         .gift-options-section {
             margin: 20px 0;
@@ -392,6 +421,11 @@ try {
                 font-size: 13px;
             }
         }
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     </style>
 </head>
 <body>
@@ -429,6 +463,13 @@ try {
                     <input type="text" id="postal_code" name="postal_code" class="form-input" required>
                 </div>
                 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+                <!-- Add Save Address Button -->
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                 <button type="button" id="save-address" class="btn btn-secondary">
                     <i class="fas fa-save"></i> Save Address
                 </button>
@@ -473,6 +514,10 @@ try {
                 <?php endif; ?>
             </div>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             <!-- Gift Options Section -->
             <div class="gift-options-section">
                 <h3 class="gift-options-title">Gift Options</h3>
@@ -508,6 +553,11 @@ try {
                 </div>
             </div>
 
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             <div class="summary-row">
                 <span>Subtotal</span>
                 <span>₹<?php echo number_format($subtotal, 2); ?></span>
@@ -522,7 +572,15 @@ try {
             </div>
             <div class="summary-row total-row">
                 <span>Total</span>
+<<<<<<< HEAD
                 <span id="order-total">₹<?php echo number_format($total, 2); ?></span>
+=======
+<<<<<<< HEAD
+                <span id="order-total">₹<?php echo number_format($total, 2); ?></span>
+=======
+                <span>₹<?php echo number_format($total, 2); ?></span>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             </div>
 
             <button id="checkout-btn" class="checkout-btn">Proceed to Payment</button>
@@ -530,6 +588,10 @@ try {
     </div>
 
     <script>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         // Toggle gift options visibility
         document.getElementById('gift-option').addEventListener('change', function() {
             const giftOptionsContainer = document.getElementById('gift-options-container');
@@ -561,6 +623,77 @@ try {
         }
 
         // Save address functionality
+<<<<<<< HEAD
+=======
+=======
+        document.getElementById('checkout-btn').addEventListener('click', function() {
+            const form = document.getElementById('shipping-form');
+            if (!form.checkValidity()) {
+                alert('Please fill all required fields');
+                return;
+            }
+
+            const options = {
+                key: "<?php echo $razorpay_key_id; ?>",
+                amount: <?php echo $total * 100; ?>,
+                currency: "INR",
+                name: "Perfume Paradise",
+                description: "Purchase from Perfume Paradise",
+                image: "path/to/your/logo.png",
+                handler: function(response) {
+                    console.log('Payment ID:', response.razorpay_payment_id); // Debug log
+                    
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = 'process_payment.php';
+
+                    const formData = {
+                        'razorpay_payment_id': response.razorpay_payment_id,
+                        'order_id': '<?php echo $order_id; ?>',
+                        'amount': '<?php echo $total; ?>',
+                        'fullname': document.getElementById('fullname').value,
+                        'email': document.getElementById('email').value,
+                        'phone': document.getElementById('phone').value,
+                        'address': document.getElementById('address').value,
+                        'city': document.getElementById('city').value,
+                        'postal_code': document.getElementById('postal_code').value,
+                        'is_buy_now': '<?php echo $is_buy_now ? "1" : "0"; ?>',
+                        <?php if ($is_buy_now): ?>
+                        'product_id': '<?php echo $_GET['product_id']; ?>',
+                        <?php endif; ?>
+                        'save_address': true
+                    };
+
+                    // Debug log
+                    console.log('Form data:', formData);
+
+                    for (const [key, value] of Object.entries(formData)) {
+                        const input = document.createElement('input');
+                        input.type = 'hidden';
+                        input.name = key;
+                        input.value = value;
+                        form.appendChild(input);
+                    }
+
+                    document.body.appendChild(form);
+                    form.submit();
+                },
+                prefill: {
+                    name: document.getElementById('fullname').value,
+                    email: document.getElementById('email').value,
+                    contact: document.getElementById('phone').value
+                },
+                theme: {
+                    color: "#2874f0"
+                }
+            };
+
+            const rzp = new Razorpay(options);
+            rzp.open();
+        });
+
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         document.getElementById('save-address').addEventListener('click', function() {
             const addressData = {
                 address: document.getElementById('address').value,
@@ -588,6 +721,10 @@ try {
                 alert('Error saving address. Please try again.');
             });
         });
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
         // Checkout button functionality
         document.getElementById('checkout-btn').addEventListener('click', function() {
@@ -654,4 +791,13 @@ try {
         });
     </script>
 </body>
+<<<<<<< HEAD
 </html>
+=======
+</html>
+=======
+    </script>
+</body>
+</html>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef

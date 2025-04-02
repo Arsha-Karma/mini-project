@@ -2,6 +2,17 @@
 include 'dbconnect.php';
 session_start();
 
+<<<<<<< HEAD
+=======
+// Add is_replied column to contact_messages table if it doesn't exist
+try {
+    $alter_table_sql = "ALTER TABLE contact_messages ADD COLUMN is_replied TINYINT(1) DEFAULT 0";
+    $conn->query($alter_table_sql);
+} catch (Exception $e) {
+    // Column might already exist, continue with the script
+}
+
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 // Update the session check to match admindashboard.php
 if (!isset($_SESSION['logged_in'])) {
     header("Location: login.php");
@@ -21,10 +32,17 @@ if (isset($_GET['mark_read']) && is_numeric($_GET['mark_read'])) {
     exit();
 }
 
+<<<<<<< HEAD
 // Mark message as replied
 if (isset($_GET['mark_replied']) && is_numeric($_GET['mark_replied'])) {
     $message_id = $_GET['mark_replied'];
     $stmt = $conn->prepare("UPDATE contact_messages SET is_replied = 1, updated_at = NOW() WHERE id = ?");
+=======
+// Mark message as replied (hide from frontend)
+if (isset($_GET['mark_replied']) && is_numeric($_GET['mark_replied'])) {
+    $message_id = $_GET['mark_replied'];
+    $stmt = $conn->prepare("UPDATE contact_messages SET is_replied = 1 WHERE id = ?");
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     $stmt->bind_param("i", $message_id);
     $stmt->execute();
     header("Location: view_messages.php");
@@ -45,22 +63,39 @@ if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
 // Get filter from URL, if any
 $filter = isset($_GET['filter']) ? $_GET['filter'] : '';
 
+<<<<<<< HEAD
 // Prepare query based on filter
 if ($filter === 'unread') {
     // Only show unread messages - now with JOIN to get role information
+=======
+// Prepare query based on filter - now excluding replied messages
+if ($filter === 'unread') {
+    // Only show unread messages that haven't been replied to
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     $sql = "SELECT cm.*, ts.role_type 
             FROM contact_messages cm
             LEFT JOIN tbl_signup ts ON cm.email = ts.email
             WHERE cm.status = 'unread' AND (cm.is_deleted = 0 OR cm.is_deleted IS NULL) 
+<<<<<<< HEAD
             AND cm.is_replied = 0
             ORDER BY cm.created_at DESC";
 } else {
     // Show ALL messages except replied ones - now with JOIN to get role information
+=======
+            AND (cm.is_replied = 0 OR cm.is_replied IS NULL)
+            ORDER BY cm.created_at DESC";
+} else {
+    // Show ALL messages that haven't been replied to
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     $sql = "SELECT cm.*, ts.role_type 
             FROM contact_messages cm
             LEFT JOIN tbl_signup ts ON cm.email = ts.email
             WHERE (cm.is_deleted = 0 OR cm.is_deleted IS NULL) 
+<<<<<<< HEAD
             AND cm.is_replied = 0
+=======
+            AND (cm.is_replied = 0 OR cm.is_replied IS NULL)
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             ORDER BY cm.created_at DESC";
 }
 
@@ -308,7 +343,14 @@ $unread_count = $unread_result->fetch_assoc()['count'];
             <div class="row">
                 <?php foreach ($messages as $message): ?>
                 <div class="col-md-6">
+<<<<<<< HEAD
                     <div class="card message-card <?php echo $message['status'] === 'unread' ? 'unread' : ''; ?>">
+=======
+                    <div class="card message-card <?php echo $message['status'] === 'unread' ? 'unread' : ''; ?>" 
+                         id="message-<?php echo $message['id']; ?>" 
+                         data-email="<?php echo htmlspecialchars($message['email']); ?>"
+                         data-subject="<?php echo htmlspecialchars($message['subject']); ?>">
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                         <div class="card-header message-header">
                             <div>
                                 <strong><?php echo htmlspecialchars($message['name']); ?></strong>
@@ -346,8 +388,14 @@ $unread_count = $unread_result->fetch_assoc()['count'];
                             </p>
                             
                             <div class="d-grid gap-2">
+<<<<<<< HEAD
                                 <a href="https://mail.google.com/mail/?view=cm&fs=1&to=<?php echo htmlspecialchars($message['email']); ?>&su=Re: <?php echo htmlspecialchars($message['subject']); ?>" 
                                    class="btn btn-primary reply-btn" target="_blank" data-message-id="<?php echo $message['id']; ?>">
+=======
+                                <a href="javascript:void(0);" 
+                                   onclick="markAsReplied(<?php echo $message['id']; ?>)"
+                                   class="btn btn-primary">
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                                     <i class="fas fa-reply"></i> Reply via Email
                                 </a>
                             </div>
@@ -362,6 +410,7 @@ $unread_count = $unread_result->fetch_assoc()['count'];
     
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<<<<<<< HEAD
     
     <!-- Custom JavaScript to handle email replies -->
     <script>
@@ -411,6 +460,21 @@ $unread_count = $unread_result->fetch_assoc()['count'];
                 });
             });
         });
+=======
+
+    <script>
+    function markAsReplied(messageId) {
+        // Open Gmail in a new window
+        const message = document.getElementById('message-' + messageId);
+        const email = message.dataset.email;
+        const subject = message.dataset.subject;
+        
+        window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + email + '&su=Re: ' + subject, '_blank');
+        
+        // Mark message as replied (will hide it from the frontend)
+        window.location.href = 'view_messages.php?mark_replied=' + messageId;
+    }
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     </script>
 </body>
 </html>

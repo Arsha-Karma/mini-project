@@ -50,6 +50,10 @@ if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > 
 // Update last activity time
 $_SESSION['last_activity'] = time();
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 // At the top of your file, after session_start()
 if (!isset($_SESSION['user_id'])) {
     header('Location: login.php');
@@ -71,6 +75,11 @@ if (!$seller_id) {
     exit();
 }
 
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 // Get seller information including verification status
 $seller_id = $_SESSION['user_id'];
 $stmt = $conn->prepare("
@@ -86,6 +95,7 @@ $seller_info = $stmt->get_result()->fetch_assoc();
 // Get verification status
 $is_verified = ($seller_info['verified_status'] === 'verified');
 $verification_status = $seller_info['verified_status'];
+<<<<<<< HEAD
 
 // Get seller's products only if verified
 if ($is_verified) {
@@ -127,6 +137,71 @@ $recent_orders_query = "
 
 $stmt = $conn->prepare($recent_orders_query);
 $stmt->bind_param("i", $seller_info['seller_id']);
+=======
+<<<<<<< HEAD
+
+// Get seller's products only if verified
+if ($is_verified) {
+    $stmt = $conn->prepare("
+        SELECT * FROM tbl_product
+        WHERE seller_id = (
+            SELECT seller_id FROM tbl_seller WHERE Signup_id = ?
+        ) AND deleted = 0
+    ");
+    $stmt->bind_param("i", $_SESSION['user_id']);
+    $stmt->execute();
+    $products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+} else {
+    $products = [];
+}
+
+// Get seller's orders
+$sales_query = "
+    SELECT
+=======
+
+// Get seller's products
+$stmt = $conn->prepare("
+    SELECT * FROM tbl_product 
+    WHERE seller_id = (
+        SELECT seller_id FROM tbl_seller WHERE Signup_id = ?
+    ) AND deleted = 0
+");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+
+// Get seller's orders
+$sales_query = "
+    SELECT 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+        o.order_id,
+        s.username as customer_name,
+        p.name as product_name,
+        p.image_path as product_image,
+        o.quantity,
+        o.total_amount,
+        o.created_at as order_date,
+        o.payment_status,
+<<<<<<< HEAD
+        o.order_status,
+        o.gift_option,
+        o.gift_wrap_type
+=======
+        o.order_status
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+    FROM orders_table o
+    JOIN tbl_signup s ON o.Signup_id = s.Signup_id
+    JOIN tbl_product p ON o.product_id = p.product_id
+    WHERE p.seller_id = (
+        SELECT seller_id FROM tbl_seller WHERE Signup_id = ?
+    )
+    ORDER BY o.created_at DESC
+    LIMIT 10";
+
+$stmt = $conn->prepare($sales_query);
+$stmt->bind_param("i", $_SESSION['user_id']);
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 $stmt->execute();
 $sales = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
@@ -143,12 +218,31 @@ if (empty($sales)) {
     error_log("No sales found for seller_id: " . $seller_info['seller_id']);
 }
 
+<<<<<<< HEAD
 // Get recent reviews
 $stmt = $conn->prepare("
     SELECT r.*, p.name as product_name, s.username
     FROM tbl_reviews r
     JOIN tbl_product p ON r.product_id = p.product_id
     JOIN tbl_signup s ON r.user_id = s.Signup_id
+=======
+// Update order status to completed if payment is successful
+$update_status = $conn->prepare("
+    UPDATE orders_table o
+    JOIN tbl_product p ON o.product_id = p.product_id
+    SET o.order_status = 'completed'
+    WHERE p.seller_id = ? AND o.payment_status = 'paid' AND o.order_status != 'completed'
+");
+$update_status->bind_param("i", $seller_info['seller_id']);
+$update_status->execute();
+
+// Get recent reviews
+$stmt = $conn->prepare("
+    SELECT r.*, p.name as product_name, u.username
+    FROM tbl_reviews r
+    JOIN tbl_product p ON r.product_id = p.product_id
+    JOIN tbl_users u ON r.user_id = u.user_id
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     WHERE p.seller_id = ?
     ORDER BY r.created_at DESC
     LIMIT 5
@@ -174,6 +268,10 @@ if ($show_success) {
 }
 
 // Show verification form for unverified sellers
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 $show_verification_popup = ($result['verified_status'] === 'pending' || $result['documents_uploaded'] !== 'completed');
 
 // If seller is not verified and hasn't uploaded documents, redirect to verification form
@@ -187,6 +285,16 @@ if ($show_verification_popup) {
 // Fetch notifications for new orders
 $new_orders_query = "
     SELECT COUNT(*) as new_orders
+<<<<<<< HEAD
+=======
+=======
+$show_verification_popup = ($result['documents_uploaded'] !== 'completed');
+
+// Fetch notifications for new orders
+$new_orders_query = "
+    SELECT COUNT(*) as new_orders 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     FROM orders_table o
     JOIN tbl_product p ON o.product_id = p.product_id
     WHERE p.seller_id = ? AND o.is_notified = 0";
@@ -198,8 +306,18 @@ $new_orders_count = $new_orders_result->fetch_assoc()['new_orders'];
 
 // Fetch out of stock products
 $out_of_stock_query = "
+<<<<<<< HEAD
     SELECT COUNT(*) as out_of_stock
     FROM tbl_product
+=======
+<<<<<<< HEAD
+    SELECT COUNT(*) as out_of_stock
+    FROM tbl_product
+=======
+    SELECT COUNT(*) as out_of_stock 
+    FROM tbl_product 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     WHERE seller_id = ? AND Stock_quantity <= 5 AND is_stock_notified = 0";
 $stmt = $conn->prepare($out_of_stock_query);
 $stmt->bind_param("i", $seller_info['seller_id']);
@@ -211,6 +329,7 @@ $total_notifications = $new_orders_count + $out_of_stock_count;
 
 // Fetch recent orders details with more specific information
 $recent_orders_query = "
+<<<<<<< HEAD
     SELECT 
         o.order_id, 
         s.username as customer_name, 
@@ -231,6 +350,32 @@ $recent_orders_query = "
     ORDER BY o.created_at DESC
     LIMIT 5
 ";
+=======
+<<<<<<< HEAD
+    SELECT
+=======
+    SELECT 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+        o.order_id,
+        o.created_at,
+        o.quantity,
+        o.total_amount,
+        o.payment_status,
+        p.name as product_name,
+        p.Stock_quantity,
+        s.username as customer_name,
+        s.email as customer_email
+    FROM orders_table o
+    JOIN tbl_product p ON o.product_id = p.product_id
+    JOIN tbl_signup s ON o.Signup_id = s.Signup_id
+<<<<<<< HEAD
+    WHERE p.seller_id = ?
+=======
+    WHERE p.seller_id = ? 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+    AND o.created_at >= NOW() - INTERVAL 24 HOUR
+    ORDER BY o.created_at DESC";
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
 $stmt = $conn->prepare($recent_orders_query);
 $stmt->bind_param("i", $seller_info['seller_id']);
@@ -239,13 +384,29 @@ $recent_orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // Fetch low stock products
 $low_stock_query = "
+<<<<<<< HEAD
     SELECT
+=======
+<<<<<<< HEAD
+    SELECT
+=======
+    SELECT 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         product_id,
         name,
         Stock_quantity,
         price
     FROM tbl_product
+<<<<<<< HEAD
     WHERE seller_id = ?
+=======
+<<<<<<< HEAD
+    WHERE seller_id = ?
+=======
+    WHERE seller_id = ? 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     AND Stock_quantity <= 5
     ORDER BY Stock_quantity ASC";
 
@@ -253,6 +414,7 @@ $stmt = $conn->prepare($low_stock_query);
 $stmt->bind_param("i", $seller_info['seller_id']);
 $stmt->execute();
 $low_stock_products = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+<<<<<<< HEAD
 
 // Get seller's order statistics
 $order_stats_query = "
@@ -274,10 +436,30 @@ $order_stats_query = "
     AND o.order_status != 'Cancelled'";
 
 $stmt = $conn->prepare($order_stats_query);
+=======
+<<<<<<< HEAD
+
+// Calculate total orders and profits
+$total_orders_query = "SELECT
+    COUNT(*) as total_orders,
+    SUM(CASE
+        WHEN o.created_at >= DATE_SUB(NOW(), INTERVAL 1 MONTH)
+        THEN o.total_amount
+        ELSE 0
+    END) as monthly_revenue
+    FROM orders_table o
+    JOIN tbl_product p ON o.product_id = p.product_id
+    WHERE p.seller_id = ?
+    AND o.payment_status = 'paid'
+    AND o.order_status != 'Cancelled'";
+
+$stmt = $conn->prepare($total_orders_query);
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 $stmt->bind_param("i", $seller_info['seller_id']);
 $stmt->execute();
 $order_stats = $stmt->get_result()->fetch_assoc();
 
+<<<<<<< HEAD
 // Calculate total orders and revenue
 $total_orders = $order_stats['total_orders'] ?? 0;
 $monthly_revenue = floatval($order_stats['monthly_revenue'] ?? 0);
@@ -291,6 +473,21 @@ error_log("Seller Profit (Raw): " . $seller_profit);
 // Format the numbers for display
 $formatted_monthly_revenue = number_format($monthly_revenue, 2);
 $formatted_seller_profit = number_format($seller_profit, 2);
+=======
+$total_orders = $order_stats['total_orders'] ?? 0;
+$monthly_revenue = $order_stats['monthly_revenue'] ?? 0;
+$seller_profit = $monthly_revenue * 0.5; // 50% of revenue goes to seller
+$admin_profit = $monthly_revenue * 0.5; // 50% of revenue goes to admin
+
+// Update admin_profits table
+$update_admin_profit = "INSERT INTO admin_profits (seller_id, amount, month_year)
+    VALUES (?, ?, DATE_FORMAT(NOW(), '%Y-%m-01'))
+    ON DUPLICATE KEY UPDATE amount = amount + ?";
+
+$stmt = $conn->prepare($update_admin_profit);
+$stmt->bind_param("idd", $seller_info['seller_id'], $admin_profit, $admin_profit);
+$stmt->execute();
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
 // Add this function after the existing PHP code at the top of the file
 function sendAdminNotification($sellerName, $sellerId) {
@@ -384,6 +581,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         exit();
     }
 }
+<<<<<<< HEAD
 
 // Update this query to directly fetch amounts from payment_table with no status filtering
 $admin_profits_query = "SELECT 
@@ -402,6 +600,10 @@ $current_month_payments = $profits_data['current_month_payments'] ?? 0;
 // Calculate admin profit (30% of amounts)
 $total_admin_profit = $total_payments * 0.30;
 $current_month_profit = $current_month_payments * 0.30;
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 ?>
 
 <!DOCTYPE html>
@@ -608,6 +810,10 @@ $current_month_profit = $current_month_payments * 0.30;
             border-radius: 4px;
             font-size: 12px;
             margin-left: 5px;
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         }
 
         @media (max-width: 768px) {
@@ -963,7 +1169,11 @@ $current_month_profit = $current_month_payments * 0.30;
             max-height: 90vh;
             overflow-y: auto;
             position: relative;
+<<<<<<< HEAD
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+=======
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         }
 
         .popup-content h2 {
@@ -1221,7 +1431,344 @@ $current_month_profit = $current_month_payments * 0.30;
             font-size: 12px;
             display: block;
             margin-top: 5px;
+<<<<<<< HEAD
         }
+=======
+        }
+=======
+        }
+
+        @media (max-width: 768px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .table {
+                display: block;
+                overflow-x: auto;
+            }
+
+            .section-header {
+                flex-direction: column;
+                gap: 10px;
+            }
+        }
+
+        /* Add sidebar styles */
+        .sidebar {
+            height: 100%;
+            width: 250px;
+            position: fixed;
+            top: 0;
+            left: 0;
+            background-color: #1a1a1a;
+            padding-top: 20px;
+            color: white;
+        }
+
+        .sidebar h2 {
+            color: #fff;
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            border-bottom: 1px solid #333;
+        }
+
+        .sidebar a {
+            padding: 15px 25px;
+            text-decoration: none;
+            font-size: 16px;
+            color: #fff;
+            display: block;
+            transition: 0.3s;
+        }
+
+        .sidebar a:hover {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .sidebar a.active {
+            background-color: #333;
+            border-left: 4px solid #fff;
+        }
+
+        .sidebar i {
+            margin-right: 10px;
+        }
+
+        /* Adjust main content to accommodate sidebar */
+        .container {
+            margin-left: 250px; /* Same as sidebar width */
+            max-width: calc(100% - 250px);
+            padding: 20px;
+        }
+
+        /* Responsive design */
+        @media screen and (max-width: 768px) {
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+                margin-bottom: 20px;
+            }
+            
+            .container {
+                margin-left: 0;
+                max-width: 100%;
+            }
+            
+            .sidebar a {
+                float: left;
+                padding: 15px;
+            }
+            
+            .sidebar h2 {
+                display: none;
+            }
+        }
+
+        @media screen and (max-width: 480px) {
+            .sidebar a {
+                text-align: center;
+                float: none;
+            }
+        }
+
+        /* Add these styles for the status badges */
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .status-badge.pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+
+        .status-badge.completed {
+            background-color: #d4edda;
+            color: #155724;
+        }
+
+        .status-badge.processing {
+            background-color: #cce5ff;
+            color: #004085;
+        }
+
+        .status-badge.cancelled {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+
+        .product-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .product-info img {
+            border-radius: 4px;
+        }
+
+        .table td {
+            vertical-align: middle;
+        }
+
+        .welcome-section {
+            background: #fff;
+            padding: 20px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .welcome-section h1 {
+            color: #333;
+            font-size: 28px;
+            margin: 0;
+            font-weight: 600;
+        }
+
+        .notification-area {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .notification-icon {
+            background: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            position: relative;
+        }
+
+        .notification-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            padding: 2px 6px;
+            font-size: 12px;
+            min-width: 18px;
+            text-align: center;
+            display: none; /* Hidden by default */
+        }
+
+        .notification-dropdown {
+            display: none;
+            position: absolute;
+            top: 50px;
+            right: 0;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 300px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .notification-header {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .notification-header h3 {
+            margin: 0;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .notification-section {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .notification-section h4 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .notification-items {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .notification-item {
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background-color: #f8f9fa;
+        }
+
+        .notification-item.order {
+            border-left: 4px solid #007bff;
+        }
+
+        .notification-item.stock {
+            border-left: 4px solid #dc3545;
+        }
+
+        .notification-title {
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: #333;
+        }
+
+        .notification-details {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .notification-details p {
+            margin: 3px 0;
+        }
+
+        .notification-details small {
+            color: #888;
+            font-style: italic;
+        }
+
+        .notification-item.stock {
+            border-left: 4px solid #dc3545;
+        }
+
+        .out-of-stock {
+            color: #dc3545;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        .low-stock-warning {
+            color: #ffc107;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+
+        #toastContainer {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+        }
+
+        .toast-notification {
+            background: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .toast-notification i {
+            font-size: 18px;
+        }
+
+        .order-toast {
+            border-left: 4px solid #007bff;
+        }
+
+        .order-toast i {
+            color: #007bff;
+        }
+
+        .stock-toast {
+            border-left: 4px solid #dc3545;
+        }
+
+        .stock-toast i {
+            color: #dc3545;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     </style>
 </head>
 <body>
@@ -1258,6 +1805,10 @@ $current_month_profit = $current_month_payments * 0.30;
             <h1>Welcome <?php echo htmlspecialchars($_SESSION['username']); ?>!</h1>
         </div>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         <?php if ($verification_status === 'verified'): ?>
             <div class="verification-banner verification-verified">
                 <i class="fas fa-check-circle"></i>
@@ -1281,12 +1832,26 @@ $current_month_profit = $current_month_payments * 0.30;
         <?php endif; ?>
 
         <!-- Notification Area -->
+<<<<<<< HEAD
+=======
+=======
+        <!-- Add this right after the welcome section and before other content -->
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         <div class="notification-area">
             <div class="notification-icon" onclick="toggleNotifications(event)">
                 <i class="fas fa-bell"></i>
                 <span class="notification-badge" id="notificationCount">0</span>
             </div>
+<<<<<<< HEAD
            
+=======
+<<<<<<< HEAD
+           
+=======
+            
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             <div class="notification-dropdown" id="notificationDropdown">
                 <div class="notification-header">
                     <h3>Notifications</h3>
@@ -1296,6 +1861,7 @@ $current_month_profit = $current_month_payments * 0.30;
                         <h4>Recent Orders</h4>
                         <div class="notification-items" id="recentOrdersList">
                             <!-- Orders will be populated here -->
+<<<<<<< HEAD
                         </div>
                     </div>
                     <div class="notification-section" id="stockNotifications">
@@ -1331,6 +1897,184 @@ $current_month_profit = $current_month_payments * 0.30;
                     <small>After admin commission</small>
                 </div>
             </div>
+=======
+<<<<<<< HEAD
+                        </div>
+                    </div>
+                    <div class="notification-section" id="stockNotifications">
+                        <h4>Low Stock Products</h4>
+                        <div class="notification-items" id="lowStockList">
+                            <!-- Low stock items will be populated here -->
+                        </div>
+                    </div>
+=======
+                        </div>
+                    </div>
+                    <div class="notification-section" id="stockNotifications">
+                        <h4>Low Stock Products</h4>
+                        <div class="notification-items" id="lowStockList">
+                            <!-- Low stock items will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Verification Status Banner -->
+        <?php if ($verification_status === 'pending'): ?>
+            <div class="verification-banner verification-pending">
+                <i class="fas fa-clock"></i>
+                Your seller account verification is pending. You'll be able to add products once verified.
+            </div>
+        <?php elseif ($verification_status === 'verified'): ?>
+            <div class="verification-banner verification-verified">
+                <i class="fas fa-check-circle"></i>
+                Your seller account is verified. You can now add and manage products.
+            </div>
+        <?php elseif ($verification_status === 'rejected'): ?>
+            <div class="verification-banner verification-rejected">
+                <i class="fas fa-times-circle"></i>
+                Your seller verification was rejected. Please contact support for more information.
+            </div>
+        <?php endif; ?>
+
+        <!-- Orders Section (Now First) -->
+        <div class="section">
+            <h2><i class="fas fa-shopping-cart"></i> Recent Orders</h2>
+            <?php if (empty($sales)): ?>
+                <div class="no-data">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>No orders yet</p>
+                </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Customer Name</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Total Amount</th>
+                                <th>Order Date</th>
+                                <th>Payment Status</th>
+                                <th>Order Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($sales as $order): ?>
+                                <tr>
+                                    <td>#<?php echo $order['order_id']; ?></td>
+                                    <td><?php echo htmlspecialchars($order['customer_name']); ?></td>
+                                    <td>
+                                        <div class="product-info">
+                                            <img src="<?php echo htmlspecialchars($order['product_image']); ?>" alt="Product" style="width: 50px; height: 50px; object-fit: cover;">
+                                            <span><?php echo htmlspecialchars($order['product_name']); ?></span>
+                                        </div>
+                                    </td>
+                                    <td><?php echo $order['quantity']; ?></td>
+                                    <td>₹<?php echo number_format($order['total_amount'], 2); ?></td>
+                                    <td><?php echo date('d M Y', strtotime($order['order_date'])); ?></td>
+                                    <td>
+                                        <?php 
+                                        // Payment Status Column
+                                        echo '<span class="badge ' . ($order['payment_status'] === 'paid' ? 'bg-success' : 'bg-warning') . '">';
+                                        echo htmlspecialchars($order['payment_status']);
+                                        echo '</span>';
+                                        ?>
+                                    </td>
+                                    <td>
+                                        <?php 
+                                        // Order Status Column
+                                        if ($order['order_status'] === 'Cancelled') {
+                                            echo '<span class="badge bg-danger">Cancelled</span>';
+                                            if (!empty($order['cancellation_reason'])) {
+                                                echo '<br><small class="text-muted">(' . htmlspecialchars($order['cancellation_reason']) . ')</small>';
+                                            }
+                                        } else {
+                                            echo '<span class="badge bg-success">completed</span>';
+                                        }
+                                        ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <!-- Products Section (Now Second) -->
+        <div class="section">
+            <div class="section-header">
+                <h2><i class="fas fa-box"></i> Your Products</h2>
+            </div>
+
+            <?php if (empty($products)): ?>
+                <div class="no-data">
+                    <i class="fas fa-box-open"></i>
+                    <p>No products added yet</p>
+                </div>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Price</th>
+                                <th>Stock</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($products as $product): ?>
+                                <tr>
+                                    <td>
+                                        <div class="product-info">
+                                            <img src="<?php echo htmlspecialchars($product['image_path']); ?>" alt="Product">
+                                            <span><?php echo htmlspecialchars($product['name']); ?></span>
+                                        </div>
+                                    </td>
+                                    <td>₹<?php echo number_format($product['price'], 2); ?></td>
+                                    <td>
+                                        <?php echo $product['Stock_quantity']; ?>
+                                        <?php if ($product['Stock_quantity'] <= 5): ?>
+                                            <span class="low-stock">Low Stock</span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><span class="status-active">Active</span></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php if ($show_dashboard_content): ?>
+            <!-- Stats Cards -->
+            <div class="stats-container">
+                <div class="stat-box">
+                    <i class="fas fa-shopping-cart"></i>
+                    <h3>Total Orders</h3>
+                    <div class="number"><?php echo $total_orders; ?></div>
+                </div>
+               
+                <div class="stat-box">
+                    <i class="fas fa-chart-line"></i>
+                    <h3>Monthly Revenue</h3>
+                    <div class="number">₹<?php echo number_format($monthly_revenue, 2); ?></div>
+                </div>
+               
+                <div class="stat-box">
+                    <i class="fas fa-money-bill-wave"></i>
+                    <h3>Your Profit (50%)</h3>
+                    <div class="number">₹<?php echo number_format($seller_profit, 2); ?></div>
+                    <small>After admin commission</small>
+                </div>
+            </div>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
             <!-- Orders Section -->
             <div class="section">
@@ -1369,7 +2113,11 @@ $current_month_profit = $current_month_payments * 0.30;
                                         </td>
                                         <td><?php echo $order['quantity']; ?></td>
                                         <td>₹<?php echo number_format($order['total_amount'], 2); ?></td>
+<<<<<<< HEAD
                                         <td><?php echo date('d M Y', strtotime($order['created_at'])); ?></td>
+=======
+                                        <td><?php echo date('d M Y', strtotime($order['order_date'])); ?></td>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                                         <td>
                                             <?php if ($order['gift_option']): ?>
                                                 <span class="badge bg-info">
@@ -1388,12 +2136,17 @@ $current_month_profit = $current_month_payments * 0.30;
                                         <td>
                                             <?php if ($order['order_status'] === 'Cancelled'): ?>
                                                 <span class="badge bg-danger">Cancelled</span>
+<<<<<<< HEAD
                                             <?php elseif ($order['order_status'] === 'Completed'): ?>
                                                 <span class="badge bg-success">Completed</span>
                                             <?php elseif ($order['order_status'] === 'Processing'): ?>
                                                 <span class="badge bg-warning">Processing</span>
                                             <?php else: ?>
                                                 <span class="badge bg-info">Pending</span>
+=======
+                                            <?php else: ?>
+                                                <span class="badge bg-success">completed</span>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -1535,6 +2288,10 @@ $current_month_profit = $current_month_payments * 0.30;
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
     <script>
     let notificationsViewed = false;
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
     // Replace the existing EventSource-related code with this polling solution
     function initializeEventSource() {
@@ -1585,6 +2342,52 @@ $current_month_profit = $current_month_payments * 0.30;
     function showToast(data) {
         const toastContainer = document.getElementById('toastContainer');
        
+<<<<<<< HEAD
+=======
+=======
+    let eventSource = null;
+
+    // Initialize SSE connection
+    function initializeEventSource() {
+        if (eventSource) {
+            eventSource.close();
+        }
+
+        eventSource = new EventSource('notification_stream.php');
+        
+        eventSource.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            
+            if (data.new_orders > 0 || data.low_stock > 0) {
+                // Reset notification viewed status
+                notificationsViewed = false;
+                
+                // Show notification badge
+                const badge = document.getElementById('notificationCount');
+                badge.style.display = 'block';
+                
+                // Update notifications content
+                checkNotifications();
+                
+                // Show toast notification
+                showToast(data);
+            }
+        };
+
+        eventSource.onerror = function(error) {
+            console.error('EventSource failed:', error);
+            eventSource.close();
+            // Retry connection after 5 seconds
+            setTimeout(initializeEventSource, 5000);
+        };
+    }
+
+    // Show toast notification
+    function showToast(data) {
+        const toastContainer = document.getElementById('toastContainer');
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         if (data.new_orders > 0) {
             const toast = document.createElement('div');
             toast.className = 'toast-notification order-toast';
@@ -1595,13 +2398,29 @@ $current_month_profit = $current_month_payments * 0.30;
             toastContainer.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
         }
+<<<<<<< HEAD
        
+=======
+<<<<<<< HEAD
+       
+=======
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         if (data.low_stock > 0) {
             const toast = document.createElement('div');
             toast.className = 'toast-notification stock-toast';
             toast.innerHTML = `
                 <i class="fas fa-exclamation-triangle"></i>
+<<<<<<< HEAD
                 Low stock alert!
+=======
+<<<<<<< HEAD
+                Low stock alert!
+=======
+                Product stock alert!
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             `;
             toastContainer.appendChild(toast);
             setTimeout(() => toast.remove(), 5000);
@@ -1612,9 +2431,21 @@ $current_month_profit = $current_month_payments * 0.30;
         event.stopPropagation();
         const dropdown = document.getElementById('notificationDropdown');
         const isVisible = dropdown.style.display === 'block';
+<<<<<<< HEAD
        
         dropdown.style.display = isVisible ? 'none' : 'block';
        
+=======
+<<<<<<< HEAD
+       
+        dropdown.style.display = isVisible ? 'none' : 'block';
+       
+=======
+        
+        dropdown.style.display = isVisible ? 'none' : 'block';
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         // Clear notification count when opening dropdown
         if (!isVisible && !notificationsViewed) {
             document.getElementById('notificationCount').style.display = 'none';
@@ -1636,7 +2467,15 @@ $current_month_profit = $current_month_payments * 0.30;
             ordersList.innerHTML = data.orders.map(order => {
                 const orderDate = new Date(order.created_at);
                 const timeAgo = getTimeAgo(orderDate);
+<<<<<<< HEAD
                
+=======
+<<<<<<< HEAD
+               
+=======
+                
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                 return `
                     <div class="notification-item order">
                         <div class="notification-title">
@@ -1676,8 +2515,18 @@ $current_month_profit = $current_month_payments * 0.30;
                                 <p><strong>Product:</strong> ${product.name}</p>
                                 <p><strong>Current Stock:</strong> ${product.Stock_quantity} units</p>
                                 <p><strong>Price:</strong> ₹${product.price}</p>
+<<<<<<< HEAD
                                 ${product.Stock_quantity === 0 ?
                                     '<p class="out-of-stock">Product is out of stock!</p>' :
+=======
+<<<<<<< HEAD
+                                ${product.Stock_quantity === 0 ?
+                                    '<p class="out-of-stock">Product is out of stock!</p>' :
+=======
+                                ${product.Stock_quantity === 0 ? 
+                                    '<p class="out-of-stock">Product is out of stock!</p>' : 
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                                     '<p class="low-stock-warning">Stock running low!</p>'
                                 }
                             </div>
@@ -1690,6 +2539,21 @@ $current_month_profit = $current_month_payments * 0.30;
         }
     }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+    function checkNotifications() {
+        fetch('check_notifications.php')
+            .then(response => response.json())
+            .then(data => {
+                updateNotificationContent(data);
+            })
+            .catch(error => console.error('Error:', error));
+    }
+
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     // Reset notifications viewed status when new notifications arrive
     function resetNotificationsStatus() {
         notificationsViewed = false;
@@ -1704,6 +2568,10 @@ $current_month_profit = $current_month_payments * 0.30;
         }
     });
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     // Add this function before it's called
     function checkNotifications() {
         fetch('check_notifications.php')
@@ -1728,6 +2596,11 @@ $current_month_profit = $current_month_payments * 0.30;
     }
 
     // Then keep your existing code that calls this function
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     // Initial check and periodic updates
     checkNotifications();
     setInterval(resetNotificationsStatus, 60000); // Check every minute
@@ -1735,7 +2608,15 @@ $current_month_profit = $current_month_payments * 0.30;
     // Helper function to show relative time
     function getTimeAgo(date) {
         const seconds = Math.floor((new Date() - date) / 1000);
+<<<<<<< HEAD
        
+=======
+<<<<<<< HEAD
+       
+=======
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         let interval = Math.floor(seconds / 3600);
         if (interval < 24) {
             if (interval < 1) {
@@ -1900,7 +2781,15 @@ $current_month_profit = $current_month_payments * 0.30;
     document.addEventListener('DOMContentLoaded', function() {
         const currentPage = window.location.pathname.split('/').pop();
         const sidebarLinks = document.querySelectorAll('.sidebar a');
+<<<<<<< HEAD
        
+=======
+<<<<<<< HEAD
+       
+=======
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         sidebarLinks.forEach(link => {
             if (link.getAttribute('href') === currentPage) {
                 link.classList.add('active');
@@ -1909,6 +2798,10 @@ $current_month_profit = $current_month_payments * 0.30;
 
         initializeEventSource();
     });
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
     // Add this function to your existing JavaScript
     function hideVerificationPopup() {
@@ -1942,6 +2835,11 @@ $current_month_profit = $current_month_payments * 0.30;
             clearInterval(window.notificationInterval);
         }
     });
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     </script>
 
     <!-- Add toast container -->

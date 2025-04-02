@@ -97,6 +97,11 @@ if ($category_id) {
         }
     }
 }
+<<<<<<< HEAD
+=======
+
+echo "Current Role: " . (isset($_SESSION['role']) ? $_SESSION['role'] : 'No role set');
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 ?>
 
 <!DOCTYPE html>

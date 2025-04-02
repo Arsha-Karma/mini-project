@@ -95,6 +95,7 @@ if ($conn->query($sql) === TRUE) {
 
     $conn->query($sql_seller);
 
+<<<<<<< HEAD
     // Drop redundant columns from tbl_seller if they exist
     $drop_seller_columns = "ALTER TABLE tbl_seller 
         DROP COLUMN IF EXISTS email,
@@ -102,6 +103,14 @@ if ($conn->query($sql) === TRUE) {
         DROP COLUMN IF EXISTS role_type,
         DROP COLUMN IF EXISTS verification_status";
     $conn->query($drop_seller_columns);
+=======
+
+    // Alter tbl_seller to add verification_status column if it doesn't exist
+    if (!columnExists($conn, 'tbl_seller', 'verification_status')) {
+        $alter_seller = "ALTER TABLE tbl_seller ADD COLUMN verification_status ENUM('active', 'disabled') DEFAULT 'active'";
+        $conn->query($alter_seller);
+    }
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
     // Add new columns to tbl_seller
     $alter_seller_table = "ALTER TABLE tbl_seller 
@@ -447,6 +456,10 @@ if ($conn->query($sql) === TRUE) {
     } catch (Exception $e) {
         error_log("Error altering payment_table: " . $e->getMessage());
     }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
     // Add gift_option columns to orders_table
     $alter_orders_table = "ALTER TABLE orders_table 
@@ -503,6 +516,7 @@ if ($conn->query($sql) === TRUE) {
         error_log("Error creating index on admin_profits: " . $e->getMessage());
     }
 
+<<<<<<< HEAD
     // Modify the admin_profits table in the database setup section
     $alter_admin_profits = "ALTER TABLE admin_profits 
         ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) DEFAULT NULL,
@@ -515,6 +529,8 @@ if ($conn->query($sql) === TRUE) {
         error_log("Error altering admin_profits table: " . $e->getMessage());
     }
 
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     // Create contact_messages table
     $sql_contact_messages = "CREATE TABLE IF NOT EXISTS contact_messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -535,11 +551,16 @@ if ($conn->query($sql) === TRUE) {
     $sql_add_is_deleted = "ALTER TABLE contact_messages 
                           ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0";
     $conn->query($sql_add_is_deleted);
+<<<<<<< HEAD
 
     // Add is_replied column to contact_messages if it doesn't exist
     $sql_add_is_replied = "ALTER TABLE contact_messages 
                           ADD COLUMN IF NOT EXISTS is_replied TINYINT(1) DEFAULT 0";
     $conn->query($sql_add_is_replied);
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 }
 
 // Helper Functions
@@ -832,6 +853,7 @@ function deleteSeller($conn, $seller_id) {
     }
 }
 
+<<<<<<< HEAD
 // Add this function after your other functions
 function calculateAndRecordAdminProfit($conn, $order_id) {
     // Check if profit for this order has already been recorded to prevent duplicates
@@ -914,6 +936,8 @@ function calculateAndRecordAdminProfit($conn, $order_id) {
     }
 }
 
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 // Close the database connection when done
 register_shutdown_function(function() use ($conn) {
     $conn->close();

@@ -112,21 +112,43 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     
                     // Based on role_type, insert into appropriate table
                     if ($role_type === 'user') {
+<<<<<<< HEAD
                         // Only insert Signup_id into tbl_users (corrected query)
                         $user_sql = "INSERT INTO tbl_users (Signup_id) VALUES (?)";
                         $user_stmt = $conn->prepare($user_sql);
                         $user_stmt->bind_param("i", $Signup_id);
+=======
+                        // Update existing user entry or insert new one
+                        $user_sql = "INSERT INTO tbl_users (Signup_id, username, email, phoneno, role_type) 
+                                   VALUES (?, ?, ?, ?, ?)
+                                   ON DUPLICATE KEY UPDATE 
+                                   email = VALUES(email),
+                                   phoneno = VALUES(phoneno)";
+                        $user_stmt = $conn->prepare($user_sql);
+                        $user_stmt->bind_param("issss", $Signup_id, $username, $email, $number, $role_type);
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                         
                         if (!$user_stmt->execute()) {
                             throw new Exception("Failed to create user record");
                         }
                     } 
                     elseif ($role_type === 'seller') {
+<<<<<<< HEAD
                         // Insert Signup_id and Sellername into tbl_seller (corrected query)
                         $seller_sql = "INSERT INTO tbl_seller (Signup_id, Sellername, verified_status, documents_uploaded) 
                                       VALUES (?, ?, 'pending', 'pending')";
                         $seller_stmt = $conn->prepare($seller_sql);
                         $seller_stmt->bind_param("is", $Signup_id, $username);
+=======
+                        // Update existing seller entry or insert new one
+                        $seller_sql = "INSERT INTO tbl_seller (Signup_id, Sellername, email, phoneno, role_type, Status) 
+                                     VALUES (?, ?, ?, ?, ?, 'pending')
+                                     ON DUPLICATE KEY UPDATE 
+                                     email = VALUES(email),
+                                     phoneno = VALUES(phoneno)";
+                        $seller_stmt = $conn->prepare($seller_sql);
+                        $seller_stmt->bind_param("issss", $Signup_id, $username, $email, $number, $role_type);
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                         
                         if (!$seller_stmt->execute()) {
                             throw new Exception("Failed to create seller record");

@@ -334,6 +334,7 @@ $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         .product-meta p:last-child {
             margin-bottom: 20px;
         }
+<<<<<<< HEAD
 
         /* Add these styles to your existing CSS */
         .reviews-summary {
@@ -425,6 +426,8 @@ $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
                 margin-top: 10px;
             }
         }
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     </style>
 </head>
 <body class="product-page">
@@ -489,6 +492,7 @@ $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
         </div>
     </div>
 
+<<<<<<< HEAD
     <!-- Product Reviews Section - Moved above related products -->
     <div class="related-products">
         <h2>Customer Reviews</h2>
@@ -576,6 +580,11 @@ $related_products = $related_stmt->get_result()->fetch_all(MYSQLI_ASSOC);
     <!-- Related Products Section - Moved below reviews -->
     <div class="related-products">
         <h2>Other Products</h2>
+=======
+    <?php if (!empty($related_products)): ?>
+    <div class="related-products">
+        <h2>Related Products</h2>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         <div class="related-grid">
             <?php foreach ($related_products as $related): ?>
                 <div class="product-card">

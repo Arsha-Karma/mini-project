@@ -20,6 +20,10 @@ $seller_result = $stmt->get_result();
 $seller_data = $seller_result->fetch_assoc();
 $seller_id = $seller_data['seller_id'];
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 // Fetch gift orders with payment amount
 $gift_orders_query = "
     SELECT o.*, 
@@ -59,6 +63,7 @@ $stmt = $conn->prepare($regular_orders_query);
 $stmt->bind_param("i", $seller_id);
 $stmt->execute();
 $regular_orders = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+<<<<<<< HEAD
 
 // Process order status update
 if (isset($_POST['mark_completed']) && isset($_POST['order_id'])) {
@@ -110,6 +115,26 @@ $result = $conn->query($get_new_completed);
 while ($row = $result->fetch_assoc()) {
     calculateAndRecordAdminProfit($conn, $row['order_id']);
 }
+=======
+=======
+// Now fetch orders for this seller's products
+$sales_query = "
+    SELECT o.*, 
+           p.name as product_name,
+           s.username as customer_name,
+           s.email as customer_email
+    FROM orders_table o
+    JOIN tbl_product p ON o.product_id = p.product_id
+    JOIN tbl_signup s ON o.Signup_id = s.Signup_id
+    WHERE p.seller_id = ?
+    ORDER BY o.created_at DESC";
+
+$stmt = $conn->prepare($sales_query);
+$stmt->bind_param("i", $seller_id);
+$stmt->execute();
+$sales = $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 ?>
 
 <!DOCTYPE html>
@@ -253,6 +278,10 @@ while ($row = $result->fetch_assoc()) {
             background-color: #dc3545 !important;
             color: white;
         }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
 
         /* Add new styles */
         .orders-section {
@@ -403,6 +432,11 @@ while ($row = $result->fetch_assoc()) {
             font-size: 12px;
             color: #28a745;
         }
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
     </style>
 </head>
 <body>
@@ -422,6 +456,10 @@ while ($row = $result->fetch_assoc()) {
             <h1 style="color: #000000;">Orders</h1>
         </div>
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
         <!-- Gift Orders Section -->
         <div class="orders-section gift-orders">
             <div class="section-header">
@@ -494,6 +532,7 @@ while ($row = $result->fetch_assoc()) {
                                         <td>
                                             <?php if ($order['order_status'] === 'Cancelled'): ?>
                                                 <span class="badge bg-danger">Cancelled</span>
+<<<<<<< HEAD
                                             <?php elseif ($order['order_status'] === 'Completed'): ?>
                                                 <span class="badge bg-success">Completed</span>
                                             <?php elseif ($order['order_status'] === 'Processing'): ?>
@@ -506,6 +545,10 @@ while ($row = $result->fetch_assoc()) {
                                                 </form>
                                             <?php else: ?>
                                                 <span class="badge bg-info">Pending</span>
+=======
+                                            <?php else: ?>
+                                                <span class="badge bg-success">completed</span>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -580,6 +623,7 @@ while ($row = $result->fetch_assoc()) {
                                         <td>
                                             <?php if ($order['order_status'] === 'Cancelled'): ?>
                                                 <span class="badge bg-danger">Cancelled</span>
+<<<<<<< HEAD
                                             <?php elseif ($order['order_status'] === 'Completed'): ?>
                                                 <span class="badge bg-success">Completed</span>
                                             <?php elseif ($order['order_status'] === 'Processing'): ?>
@@ -592,6 +636,10 @@ while ($row = $result->fetch_assoc()) {
                                                 </form>
                                             <?php else: ?>
                                                 <span class="badge bg-info">Pending</span>
+=======
+                                            <?php else: ?>
+                                                <span class="badge bg-success">completed</span>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
                                             <?php endif; ?>
                                         </td>
                                     </tr>
@@ -600,6 +648,71 @@ while ($row = $result->fetch_assoc()) {
                         </table>
                     </div>
                 <?php endif; ?>
+<<<<<<< HEAD
+=======
+=======
+        <div class="card">
+            <div class="card-body">
+                <h4 class="card-title">All Orders</h4>
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Order ID</th>
+                                <th>Product</th>
+                                <th>Customer Details</th>
+                                <th>Shipping Address</th>
+                                <th>Quantity</th>
+                                <th>Amount</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (!empty($sales)): ?>
+                                <?php foreach ($sales as $sale): ?>
+                                    <tr>
+                                        <td><?php echo htmlspecialchars($sale['order_id']); ?></td>
+                                        <td><?php echo htmlspecialchars($sale['product_name']); ?></td>
+                                        <td>
+                                            <?php echo htmlspecialchars($sale['customer_name']); ?><br>
+                                            <small><?php echo htmlspecialchars($sale['customer_email']); ?></small>
+                                        </td>
+                                        <td>
+                                            <?php 
+                                            $address = nl2br(htmlspecialchars($sale['shipping_address']));
+                                            echo $address;
+                                            ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars($sale['quantity']); ?></td>
+                                        <td>₹<?php echo htmlspecialchars($sale['total_amount']); ?></td>
+                                        <td>
+                                            <?php 
+                                            if ($sale['order_status'] === 'Cancelled') {
+                                                echo '<span class="badge bg-danger">Cancelled</span>';
+                                                if (!empty($sale['cancellation_reason'])) {
+                                                    echo '<br><small class="text-muted">Reason: ' . htmlspecialchars($sale['cancellation_reason']) . '</small>';
+                                                }
+                                            } else {
+                                                echo '<span class="badge ' . ($sale['payment_status'] === 'paid' ? 'bg-success' : 'bg-warning') . '">';
+                                                echo htmlspecialchars($sale['order_status']);
+                                                echo '</span>';
+                                            }
+                                            ?>
+                                        </td>
+                                        <td><?php echo htmlspecialchars(date('d M Y', strtotime($sale['created_at']))); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="8" class="text-center">No orders found</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
             </div>
         </div>
     </div>

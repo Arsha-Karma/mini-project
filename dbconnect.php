@@ -28,6 +28,7 @@ if ($conn->query($sql) === TRUE) {
         address VARCHAR(255),
         city VARCHAR(100),
         district VARCHAR(100),
+        postal_code VARCHAR(10),
         role_type ENUM('admin', 'user', 'seller') NOT NULL DEFAULT 'user',
         verification_status ENUM('active', 'disabled') DEFAULT 'active',
         otp VARCHAR(6) DEFAULT NULL,
@@ -39,6 +40,12 @@ if ($conn->query($sql) === TRUE) {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     
     $conn->query($sql_signup);
+
+    // Add postal_code column if it doesn't exist
+    $alter_postal_code = "ALTER TABLE tbl_signup 
+                         ADD COLUMN IF NOT EXISTS postal_code VARCHAR(10) 
+                         AFTER city";
+    $conn->query($alter_postal_code);
 
     // Alter tbl_signup to modify verification_status column
     $alter_verification_status = "ALTER TABLE tbl_signup MODIFY COLUMN verification_status ENUM('active', 'disabled') DEFAULT 'active'";
@@ -58,13 +65,8 @@ if ($conn->query($sql) === TRUE) {
     // Create tbl_users table
     $sql_users = "CREATE TABLE IF NOT EXISTS tbl_users (
         user_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        Signup_id INT(11) NOT NULL,
-        username VARCHAR(50) NOT NULL,
-        email VARCHAR(100),
-        phoneno VARCHAR(15),
-        role_type ENUM('admin', 'user', 'seller') NOT NULL,
+        Signup_id INT(11) NOT NULL UNIQUE,
         status ENUM('active', 'inactive') DEFAULT 'active',
-        verification_status ENUM('active', 'disabled') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         FOREIGN KEY (Signup_id) REFERENCES tbl_signup(Signup_id) ON DELETE CASCADE
@@ -72,35 +74,35 @@ if ($conn->query($sql) === TRUE) {
 
     $conn->query($sql_users);
 
-    // Alter tbl_users to add verification_status column if it doesn't exist
-    if (!columnExists($conn, 'tbl_users', 'verification_status')) {
-        $alter_users = "ALTER TABLE tbl_users ADD COLUMN verification_status ENUM('active', 'disabled') DEFAULT 'active'";
-        $conn->query($alter_users);
-    }
+    // Drop redundant columns from tbl_users if they exist
+    $drop_users_columns = "ALTER TABLE tbl_users 
+        DROP COLUMN IF EXISTS username,
+        DROP COLUMN IF EXISTS email,
+        DROP COLUMN IF EXISTS phoneno,
+        DROP COLUMN IF EXISTS role_type,
+        DROP COLUMN IF EXISTS verification_status";
+    $conn->query($drop_users_columns);
 
     // Create tbl_seller table
     $sql_seller = "CREATE TABLE IF NOT EXISTS tbl_seller (
         seller_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
+        Signup_id INT(11) NOT NULL UNIQUE,
         Sellername VARCHAR(50) NOT NULL,
-        Signup_id INT(11) NOT NULL,
-        email VARCHAR(100),
-        phoneno VARCHAR(15),
-        role_type ENUM('admin', 'user', 'seller') NOT NULL,
         status ENUM('active', 'inactive') DEFAULT 'active',
-        verification_status ENUM('active', 'disabled') DEFAULT 'active',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         FOREIGN KEY (Signup_id) REFERENCES tbl_signup(Signup_id) ON DELETE CASCADE
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
 
     $conn->query($sql_seller);
 
-    // Alter tbl_seller to add verification_status column if it doesn't exist
-    if (!columnExists($conn, 'tbl_seller', 'verification_status')) {
-        $alter_seller = "ALTER TABLE tbl_seller ADD COLUMN verification_status ENUM('active', 'disabled') DEFAULT 'active'";
-        $conn->query($alter_seller);
-    }
+    // Drop redundant columns from tbl_seller if they exist
+    $drop_seller_columns = "ALTER TABLE tbl_seller 
+        DROP COLUMN IF EXISTS email,
+        DROP COLUMN IF EXISTS phoneno,
+        DROP COLUMN IF EXISTS role_type,
+        DROP COLUMN IF EXISTS verification_status";
+    $conn->query($drop_seller_columns);
 
-<<<<<<< HEAD
     // Add new columns to tbl_seller
     $alter_seller_table = "ALTER TABLE tbl_seller 
         ADD COLUMN IF NOT EXISTS id_type VARCHAR(50),
@@ -109,8 +111,6 @@ if ($conn->query($sql) === TRUE) {
         ADD COLUMN IF NOT EXISTS documents_uploaded ENUM('pending', 'completed') DEFAULT 'pending'";
     $conn->query($alter_seller_table);
 
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     // Create tbl_categories table
     $sql_categories = "CREATE TABLE IF NOT EXISTS tbl_categories (
         category_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
@@ -143,102 +143,23 @@ if ($conn->query($sql) === TRUE) {
 
     $conn->query($sql_subcategories);
 
-    
-
-    // Create tbl_product table
-    $sql_product = "CREATE TABLE IF NOT EXISTS tbl_product (
-        product_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        seller_id INT(11) NOT NULL,
-        category_id INT(11) NOT NULL,
-        subcategory_id INT(11) DEFAULT NULL,
-        name VARCHAR(50) NOT NULL,
-        description VARCHAR(200),
-        price DECIMAL(10,2) NOT NULL,
-        Stock_quantity INT NOT NULL,
-        Fragrance_type VARCHAR(50),
-        gender ENUM('male', 'female', 'unisex') DEFAULT 'unisex',
-        image_url TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-        FOREIGN KEY (seller_id) REFERENCES tbl_seller(seller_id) ON DELETE CASCADE,
-        FOREIGN KEY (category_id) REFERENCES tbl_categories(category_id) ON DELETE CASCADE,
-        FOREIGN KEY (subcategory_id) REFERENCES tbl_subcategories(subcategory_id) ON DELETE SET NULL,
-        INDEX idx_seller (seller_id),
-        INDEX idx_category (category_id),
-        INDEX idx_subcategory (subcategory_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-
-    $conn->query($sql_product);
-
-    // Create tbl_orders table
-    $sql_orders = "CREATE TABLE IF NOT EXISTS tbl_orders (
-        order_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        user_id INT(11) NOT NULL,
-        product_id INT(11) NOT NULL,
-        quantity INT NOT NULL DEFAULT 1,
-        total_amount DECIMAL(10,2) NOT NULL,
-        status ENUM('pending', 'processing', 'shipped', 'delivered', 'cancelled') DEFAULT 'pending',
-        ordered_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        payment_method VARCHAR(50),
-        payment_status ENUM('pending', 'completed', 'failed', 'refunded') DEFAULT 'pending',
-        Shipping_address TEXT,
-        wrapping_type VARCHAR(50),
-        FOREIGN KEY (user_id) REFERENCES tbl_users(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES tbl_product(product_id) ON DELETE CASCADE,
-        INDEX idx_user (user_id),
-        INDEX idx_product (product_id),
-        INDEX idx_status (status)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-
-    $conn->query($sql_orders);
-
-    // Create tbl_reviews table
-    $sql_reviews = "CREATE TABLE IF NOT EXISTS tbl_reviews (
-        review_id INT(11) NOT NULL AUTO_INCREMENT PRIMARY KEY,
-        user_id INT(11) NOT NULL,
-        product_id INT(11) NOT NULL,
-        rating INT CHECK (rating >= 1 AND rating <= 5),
-        comment TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (user_id) REFERENCES tbl_users(user_id) ON DELETE CASCADE,
-        FOREIGN KEY (product_id) REFERENCES tbl_product(product_id) ON DELETE CASCADE,
-        INDEX idx_product (product_id),
-        INDEX idx_user (user_id)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
-
-    $conn->query($sql_reviews);
-<<<<<<< HEAD
-
-    // Create verification_documents table if not exists
-    $create_verification_table = "CREATE TABLE IF NOT EXISTS seller_verification_docs (
-        doc_id INT PRIMARY KEY AUTO_INCREMENT,
-        seller_id INT,
-        id_proof_front VARCHAR(255),
-        id_proof_back VARCHAR(255),
-        business_proof VARCHAR(255),
-        address_proof VARCHAR(255),
-        uploaded_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (seller_id) REFERENCES tbl_seller(seller_id)
-    )";
-    $conn->query($create_verification_table);
-
-    // Create category table
+    // Create category table first (no dependencies)
     $create_category = "CREATE TABLE IF NOT EXISTS tbl_category (
         category_id INT PRIMARY KEY AUTO_INCREMENT,
         category_name VARCHAR(100) NOT NULL,
         status ENUM('Active', 'Inactive') DEFAULT 'Active'
-    )";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $conn->query($create_category);
 
-    // Create brand table
+    // Create brand table (no dependencies)
     $create_brand = "CREATE TABLE IF NOT EXISTS tbl_brand (
         brand_id INT PRIMARY KEY AUTO_INCREMENT,
         brand_name VARCHAR(100) NOT NULL,
         status ENUM('Active', 'Inactive') DEFAULT 'Active'
-    )";
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $conn->query($create_brand);
 
-    // Create product table
+    // Create product table (depends on category and brand)
     $create_product = "CREATE TABLE IF NOT EXISTS tbl_product (
         product_id INT PRIMARY KEY AUTO_INCREMENT,
         product_name VARCHAR(255) NOT NULL,
@@ -246,13 +167,379 @@ if ($conn->query($sql) === TRUE) {
         brand_id INT,
         price DECIMAL(10,2) NOT NULL,
         image_url VARCHAR(255),
+        Stock_quantity INT NOT NULL DEFAULT 0,
         status ENUM('Active', 'Inactive') DEFAULT 'Active',
-        FOREIGN KEY (category_id) REFERENCES tbl_category(category_id),
-        FOREIGN KEY (brand_id) REFERENCES tbl_brand(brand_id)
-    )";
+        deleted BOOLEAN DEFAULT FALSE,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (category_id) REFERENCES tbl_category(category_id) ON DELETE SET NULL,
+        FOREIGN KEY (brand_id) REFERENCES tbl_brand(brand_id) ON DELETE SET NULL
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
     $conn->query($create_product);
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+
+    // Drop existing tables with foreign key constraints first
+    
+
+    // Create wishlist table (depends on user and product)
+    $sql_wishlist = "CREATE TABLE IF NOT EXISTS tbl_wishlist (
+        wishlist_id INT NOT NULL AUTO_INCREMENT,
+        user_id INT NOT NULL,
+        product_id INT NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (wishlist_id),
+        FOREIGN KEY (user_id) REFERENCES tbl_signup(Signup_id) ON DELETE CASCADE,
+        FOREIGN KEY (product_id) REFERENCES tbl_product(product_id) ON DELETE CASCADE,
+        UNIQUE KEY unique_wishlist (user_id, product_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    if (!$conn->query($sql_wishlist)) {
+        error_log("Error creating wishlist table: " . $conn->error);
+    }
+
+    // Create shipping_addresses table
+    $sql_shipping = "CREATE TABLE IF NOT EXISTS shipping_addresses (
+        address_id INT PRIMARY KEY AUTO_INCREMENT,
+        Signup_id INT,
+        address_line1 TEXT NOT NULL,
+        city VARCHAR(100) NOT NULL,
+        state VARCHAR(100) NOT NULL,
+        postal_code VARCHAR(20) NOT NULL,
+        is_default TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (Signup_id) REFERENCES tbl_signup(Signup_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    $conn->query($sql_shipping);
+
+    // Create orders table
+    $sql_orders = "CREATE TABLE IF NOT EXISTS orders_table (
+        order_id VARCHAR(100) NOT NULL PRIMARY KEY,
+        Signup_id INT NOT NULL,
+        payment_id VARCHAR(100),
+        total_amount DECIMAL(10, 2) NOT NULL,
+        shipping_address VARCHAR(255) NOT NULL,
+        order_status ENUM('Pending', 'Processing', 'Shipped', 'Delivered', 'Completed', 'Cancelled') DEFAULT 'Pending',
+        payment_status VARCHAR(50) DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (Signup_id) REFERENCES tbl_signup(Signup_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    $conn->query($sql_orders);
+
+    // Add image_path column to orders_table
+    $alter_orders_table = "ALTER TABLE orders_table 
+        ADD COLUMN IF NOT EXISTS image_path VARCHAR(255) AFTER product_id";
+
+    if (!$conn->query($alter_orders_table)) {
+        error_log("Error adding image_path column to orders_table: " . $conn->error);
+    }
+
+    // Create payment table
+    $sql_payment = "CREATE TABLE IF NOT EXISTS payment_table (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        order_id VARCHAR(100) NOT NULL,
+        Signup_id INT NOT NULL,
+        payment_id VARCHAR(100) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        payment_method VARCHAR(50) NOT NULL,
+        payment_status ENUM('pending', 'paid', 'failed') DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_payment_signupid FOREIGN KEY (Signup_id) REFERENCES tbl_signup(Signup_id) ON DELETE CASCADE,
+        CONSTRAINT fk_payment_orderid FOREIGN KEY (order_id) REFERENCES orders_table(order_id) ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    $conn->query($sql_payment);
+
+    // Add size column to tbl_product
+    $alter_product_size = "ALTER TABLE tbl_product 
+        ADD COLUMN IF NOT EXISTS size VARCHAR(20) 
+        COMMENT 'Perfume size (e.g., 100ml, 20ml)' 
+        AFTER description";
+
+    if (!$conn->query($alter_product_size)) {
+        error_log("Error adding size column to tbl_product: " . $conn->error);
+    }
+
+    // Create verification_documents table if not exists
+    $sql_verification_docs = "CREATE TABLE IF NOT EXISTS seller_verification_docs (
+        doc_id INT PRIMARY KEY AUTO_INCREMENT,
+        seller_id INT NOT NULL,
+        id_proof_front VARCHAR(255),
+        id_proof_back VARCHAR(255),
+        business_proof VARCHAR(255),
+        address_proof VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        CONSTRAINT fk_seller_docs 
+        FOREIGN KEY (seller_id) 
+        REFERENCES tbl_seller(seller_id) 
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+    
+    if (!$conn->query($sql_verification_docs)) {
+        error_log("Error creating seller_verification_docs table: " . $conn->error);
+    }
+
+    // Drop existing foreign key if it exists
+    $drop_fk = "ALTER TABLE seller_verification_docs 
+                DROP FOREIGN KEY IF EXISTS seller_verification_docs_ibfk_1";
+    $conn->query($drop_fk);
+
+    // Add the foreign key with CASCADE
+    $add_fk = "ALTER TABLE seller_verification_docs 
+               ADD CONSTRAINT seller_verification_docs_ibfk_1 
+               FOREIGN KEY (seller_id) REFERENCES tbl_seller(seller_id) 
+               ON DELETE CASCADE";
+    $conn->query($add_fk);
+
+    // Add index for better performance
+    $add_index = "CREATE INDEX IF NOT EXISTS idx_seller_id ON seller_verification_docs(seller_id)";
+    $conn->query($add_index);
+
+   
+
+    
+
+
+   
+
+    // Create reviews table with the correct structure
+    $sql_reviews = "CREATE TABLE IF NOT EXISTS tbl_reviews (
+        review_id INT AUTO_INCREMENT PRIMARY KEY,
+        user_id INT NOT NULL,
+        product_id INT NOT NULL,
+        rating INT NOT NULL,
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        FOREIGN KEY (user_id) REFERENCES tbl_signup(Signup_id),
+        FOREIGN KEY (product_id) REFERENCES tbl_product(product_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    $conn->query($sql_reviews);
+
+    // Modify the orders_table structure to ensure correct status values
+    $sql_orders = "ALTER TABLE orders_table MODIFY COLUMN order_status 
+                   ENUM('Pending', 'Processing', 'Shipped', 'Delivered', 'Completed', 'Cancelled') 
+                   DEFAULT 'Pending'";
+    $conn->query($sql_orders);
+
+    // Add an index for better performance
+    $sql_index = "ALTER TABLE orders_table ADD INDEX idx_order_status (order_status)";
+    try {
+        $conn->query($sql_index);
+    } catch (Exception $e) {
+        // Index might already exist
+    }
+
+    // Add new columns to orders_table for cancellation handling
+    $alter_orders_table = "ALTER TABLE orders_table 
+        ADD COLUMN IF NOT EXISTS cancellation_reason TEXT,
+        ADD COLUMN IF NOT EXISTS cancelled_at TIMESTAMP NULL,
+        ADD COLUMN IF NOT EXISTS refund_id VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS refund_status ENUM('pending', 'processed', 'failed') DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS cancellation_processed_by VARCHAR(50) DEFAULT NULL,
+        ADD INDEX IF NOT EXISTS idx_order_status (order_status),
+        ADD INDEX IF NOT EXISTS idx_refund_status (refund_status)";
+
+    try {
+        $conn->query($alter_orders_table);
+    } catch (Exception $e) {
+        error_log("Error altering orders_table: " . $e->getMessage());
+    }
+
+    // Create refunds_table to track refund history
+    $create_refunds_table = "CREATE TABLE IF NOT EXISTS refunds_table (
+        refund_id VARCHAR(100) PRIMARY KEY,
+        order_id VARCHAR(100) NOT NULL,
+        payment_id VARCHAR(100) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        status ENUM('initiated', 'processed', 'failed') DEFAULT 'initiated',
+        reason TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        processed_at TIMESTAMP NULL,
+        FOREIGN KEY (order_id) REFERENCES orders_table(order_id) ON DELETE CASCADE,
+        INDEX idx_order_id (order_id),
+        INDEX idx_payment_id (payment_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    try {
+        $conn->query($create_refunds_table);
+    } catch (Exception $e) {
+        error_log("Error creating refunds_table: " . $e->getMessage());
+    }
+
+    // Add cancellation_policy table for future use
+    $create_cancellation_policy = "CREATE TABLE IF NOT EXISTS cancellation_policy (
+        policy_id INT PRIMARY KEY AUTO_INCREMENT,
+        order_status VARCHAR(50) NOT NULL,
+        time_limit INT NOT NULL COMMENT 'Time limit in hours',
+        refund_percentage DECIMAL(5,2) NOT NULL,
+        conditions TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_order_status (order_status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    try {
+        $conn->query($create_cancellation_policy);
+    } catch (Exception $e) {
+        error_log("Error creating cancellation_policy table: " . $e->getMessage());
+    }
+
+    // Insert default cancellation policies
+    $insert_default_policies = "INSERT IGNORE INTO cancellation_policy 
+        (order_status, time_limit, refund_percentage, conditions) VALUES 
+        ('Pending', 24, 100.00, 'Full refund if cancelled within 24 hours'),
+        ('Processing', 12, 100.00, 'Full refund if cancelled before shipping'),
+        ('Shipped', 0, 0.00, 'No refund after shipping unless damaged or wrong item')";
+
+    try {
+        $conn->query($insert_default_policies);
+    } catch (Exception $e) {
+        error_log("Error inserting default cancellation policies: " . $e->getMessage());
+    }
+
+    // Add notification tracking for refunds
+    $alter_notifications = "ALTER TABLE notifications 
+        ADD COLUMN IF NOT EXISTS refund_id VARCHAR(100),
+        ADD COLUMN IF NOT EXISTS notification_type ENUM('order', 'refund', 'general') DEFAULT 'general',
+        ADD INDEX IF NOT EXISTS idx_notification_type (notification_type)";
+
+    try {
+        $conn->query($alter_notifications);
+    } catch (Exception $e) {
+        error_log("Error altering notifications table: " . $e->getMessage());
+    }
+
+    // Create a table to track refund transactions
+    $create_refund_transactions = "CREATE TABLE IF NOT EXISTS refund_transactions (
+        transaction_id VARCHAR(100) PRIMARY KEY,
+        refund_id VARCHAR(100) NOT NULL,
+        order_id VARCHAR(100) NOT NULL,
+        amount DECIMAL(10, 2) NOT NULL,
+        status VARCHAR(50) NOT NULL,
+        gateway_response TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        FOREIGN KEY (refund_id) REFERENCES refunds_table(refund_id) ON DELETE CASCADE,
+        FOREIGN KEY (order_id) REFERENCES orders_table(order_id) ON DELETE CASCADE,
+        INDEX idx_refund_id (refund_id),
+        INDEX idx_order_id (order_id),
+        INDEX idx_status (status)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    try {
+        $conn->query($create_refund_transactions);
+    } catch (Exception $e) {
+        error_log("Error creating refund_transactions table: " . $e->getMessage());
+    }
+
+    // Add refund columns to payment_table if they don't exist
+    $alter_payment_table = "ALTER TABLE payment_table 
+        ADD COLUMN IF NOT EXISTS refund_status ENUM('pending', 'processed', 'failed') DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS refund_id VARCHAR(100) DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS refund_amount DECIMAL(10,2) DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS refund_date TIMESTAMP NULL,
+        ADD INDEX IF NOT EXISTS idx_refund_status (refund_status)";
+
+    try {
+        $conn->query($alter_payment_table);
+    } catch (Exception $e) {
+        error_log("Error altering payment_table: " . $e->getMessage());
+    }
+
+    // Add gift_option columns to orders_table
+    $alter_orders_table = "ALTER TABLE orders_table 
+        ADD COLUMN IF NOT EXISTS gift_option TINYINT DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS gift_message TEXT,
+        ADD COLUMN IF NOT EXISTS gift_wrap_type VARCHAR(50),
+        ADD COLUMN IF NOT EXISTS gift_recipient_name VARCHAR(255),
+        ADD COLUMN IF NOT EXISTS gift_wrap_charge DECIMAL(10,2) DEFAULT 0.00";
+
+    try {
+        $conn->query($alter_orders_table);
+    } catch (Exception $e) {
+        error_log("Error adding gift columns to orders_table: " . $e->getMessage());
+    }
+
+    // Add columns for price components if they don't exist
+    $alter_orders_table = "ALTER TABLE orders_table 
+        ADD COLUMN IF NOT EXISTS subtotal DECIMAL(10,2) DEFAULT 0.00,
+        ADD COLUMN IF NOT EXISTS shipping DECIMAL(10,2) DEFAULT 0.00,
+        ADD COLUMN IF NOT EXISTS tax DECIMAL(10,2) DEFAULT 0.00,
+        ADD COLUMN IF NOT EXISTS gift_wrap_charge DECIMAL(10,2) DEFAULT 0.00";
+    $conn->query($alter_orders_table);
+
+    // Also ensure payment_table correctly stores amount
+    $alter_payment_table = "ALTER TABLE payment_table
+        MODIFY amount DECIMAL(10,2) NOT NULL";
+        
+    if (!$conn->query($alter_payment_table)) {
+        error_log("Error updating payment_table amount column: " . $conn->error);
+    }
+
+    // Create admin_profits table
+    $create_admin_profits = "CREATE TABLE IF NOT EXISTS admin_profits (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        seller_id INT NOT NULL,
+        amount DECIMAL(10,2) NOT NULL,
+        month_year DATE NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY unique_seller_month (seller_id, month_year),
+        FOREIGN KEY (seller_id) REFERENCES tbl_seller(seller_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    try {
+        $conn->query($create_admin_profits);
+    } catch (Exception $e) {
+        error_log("Error creating admin_profits table: " . $e->getMessage());
+    }
+
+    // Add index for better performance
+    $add_admin_profits_index = "CREATE INDEX IF NOT EXISTS idx_month_year ON admin_profits(month_year)";
+    try {
+        $conn->query($add_admin_profits_index);
+    } catch (Exception $e) {
+        error_log("Error creating index on admin_profits: " . $e->getMessage());
+    }
+
+    // Modify the admin_profits table in the database setup section
+    $alter_admin_profits = "ALTER TABLE admin_profits 
+        ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) DEFAULT NULL,
+        ADD COLUMN IF NOT EXISTS orders_count INT DEFAULT 0,
+        ADD UNIQUE INDEX IF NOT EXISTS idx_order_id (order_id)";
+
+    try {
+        $conn->query($alter_admin_profits);
+    } catch (Exception $e) {
+        error_log("Error altering admin_profits table: " . $e->getMessage());
+    }
+
+    // Create contact_messages table
+    $sql_contact_messages = "CREATE TABLE IF NOT EXISTS contact_messages (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(100) NOT NULL,
+        subject VARCHAR(255) NOT NULL,
+        message TEXT NOT NULL,
+        status ENUM('read', 'unread') DEFAULT 'unread',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_status (status),
+        INDEX idx_created_at (created_at)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4";
+
+    $conn->query($sql_contact_messages);
+
+    // Add is_deleted column to contact_messages if it doesn't exist
+    $sql_add_is_deleted = "ALTER TABLE contact_messages 
+                          ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0";
+    $conn->query($sql_add_is_deleted);
+
+    // Add is_replied column to contact_messages if it doesn't exist
+    $sql_add_is_replied = "ALTER TABLE contact_messages 
+                          ADD COLUMN IF NOT EXISTS is_replied TINYINT(1) DEFAULT 0";
+    $conn->query($sql_add_is_replied);
 }
 
 // Helper Functions
@@ -351,15 +638,16 @@ function registerUser($conn, $username, $email, $mobile, $password, $role = 'use
         $signup_id = $conn->insert_id;
         
         if ($role === 'user') {
-            $stmt2 = $conn->prepare("INSERT INTO tbl_users (Signup_id, username, email, phoneno, role_type, status, verification_status) 
-                VALUES (?, ?, ?, ?, ?, 'active', 'active')");
+            $stmt2 = $conn->prepare("INSERT INTO tbl_users (Signup_id, status) 
+                VALUES (?, 'active')");
+            $stmt2->bind_param("i", $signup_id);
         } else if ($role === 'seller') {
-            $stmt2 = $conn->prepare("INSERT INTO tbl_seller (Signup_id, Sellername, email, phoneno, role_type, status, verification_status) 
-                VALUES (?, ?, ?, ?, ?, 'active', 'active')");
+            $stmt2 = $conn->prepare("INSERT INTO tbl_seller (Signup_id, Sellername, status) 
+                VALUES (?, ?, 'active')");
+            $stmt2->bind_param("is", $signup_id, $username);
         }
         
         if (isset($stmt2)) {
-            $stmt2->bind_param("issss", $signup_id, $username, $email, $mobile, $role);
             $stmt2->execute();
         }
         
@@ -436,16 +724,14 @@ function activateUser($conn, $user_id) {
         
         // Update status in tbl_users
         $stmt2 = $conn->prepare("UPDATE tbl_users 
-                                SET status = 'active', 
-                                    verification_status = 'active' 
+                                SET status = 'active'
                                 WHERE Signup_id = ?");
         $stmt2->bind_param("i", $user_id);
         $stmt2->execute();
         
         // Also update tbl_seller if the user is a seller
         $stmt3 = $conn->prepare("UPDATE tbl_seller 
-                                SET status = 'active', 
-                                    verification_status = 'active' 
+                                SET status = 'active'
                                 WHERE Signup_id = ?");
         $stmt3->bind_param("i", $user_id);
         $stmt3->execute();
@@ -466,7 +752,7 @@ function activateUser($conn, $user_id) {
 
 // Function to get user status
 function getUserStatus($conn, $user_id) {
-    $stmt = $conn->prepare("SELECT u.status, u.verification_status, s.verification_status as signup_status 
+    $stmt = $conn->prepare("SELECT u.status, s.verification_status as signup_status 
                            FROM tbl_users u 
                            JOIN tbl_signup s ON u.Signup_id = s.Signup_id 
                            WHERE u.Signup_id = ?");
@@ -477,8 +763,7 @@ function getUserStatus($conn, $user_id) {
     if ($result->num_rows > 0) {
         $row = $result->fetch_assoc();
         // If any status is 'inactive' or 'disabled', consider the user inactive
-        if ($row['verification_status'] === 'disabled' || 
-            $row['signup_status'] === 'disabled' || 
+        if ($row['signup_status'] === 'disabled' || 
             $row['status'] === 'inactive') {
             return 'Inactive';
         }
@@ -501,16 +786,147 @@ if (isset($_POST['activate_user'])) {
     }
 }
 
-
-
 // Helper function to check if a column exists in a table
 function columnExists($conn, $table, $column) {
     $result = $conn->query("SHOW COLUMNS FROM $table LIKE '$column'");
     return $result->num_rows > 0;
 }
 
+// Function to delete a seller and all related records
+function deleteSeller($conn, $seller_id) {
+    try {
+        $conn->begin_transaction();
+
+        // 1. First delete from seller_verification_docs
+        $delete_docs = "DELETE FROM seller_verification_docs WHERE seller_id = ?";
+        $stmt = $conn->prepare($delete_docs);
+        $stmt->bind_param("i", $seller_id);
+        $stmt->execute();
+
+        // 2. Get the Signup_id from tbl_seller
+        $get_signup_id = "SELECT Signup_id FROM tbl_seller WHERE seller_id = ?";
+        $stmt = $conn->prepare($get_signup_id);
+        $stmt->bind_param("i", $seller_id);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        $signup_id = $result->fetch_assoc()['Signup_id'];
+
+        // 3. Delete from tbl_seller
+        $delete_seller = "DELETE FROM tbl_seller WHERE seller_id = ?";
+        $stmt = $conn->prepare($delete_seller);
+        $stmt->bind_param("i", $seller_id);
+        $stmt->execute();
+
+        // 4. Delete from tbl_signup
+        $delete_signup = "DELETE FROM tbl_signup WHERE Signup_id = ?";
+        $stmt = $conn->prepare($delete_signup);
+        $stmt->bind_param("i", $signup_id);
+        $stmt->execute();
+
+        $conn->commit();
+        return true;
+    } catch (Exception $e) {
+        $conn->rollback();
+        error_log("Error deleting seller: " . $e->getMessage());
+        return false;
+    }
+}
+
+// Add this function after your other functions
+function calculateAndRecordAdminProfit($conn, $order_id) {
+    // Check if profit for this order has already been recorded to prevent duplicates
+    $check_query = "SELECT id FROM admin_profits WHERE order_id = ?";
+    $stmt = $conn->prepare($check_query);
+    $stmt->bind_param("s", $order_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows > 0) {
+        // Profit already recorded for this order
+        return false;
+    }
+    
+    // Get order details including seller_id and amount from payment_table
+    $order_query = "SELECT o.*, p.seller_id, pt.amount as payment_amount 
+                   FROM orders_table o
+                   JOIN tbl_product p ON o.product_id = p.product_id
+                   LEFT JOIN payment_table pt ON o.order_id = pt.order_id
+                   WHERE o.order_id = ? AND o.order_status != 'Cancelled'";
+    $stmt = $conn->prepare($order_query);
+    $stmt->bind_param("s", $order_id);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    
+    if ($result->num_rows == 0) {
+        return false;
+    }
+    
+    $order = $result->fetch_assoc();
+    
+    // Use payment_amount from payment_table or fall back to total_amount if not available
+    $order_amount = $order['payment_amount'] ?? $order['total_amount'];
+    
+    // Calculate admin commission (30% of payment amount)
+    $commission_rate = 0.30; 
+    $profit_amount = $order_amount * $commission_rate;
+    
+    // Get current month in YYYY-MM-01 format
+    $current_month = date('Y-m-01');
+    
+    // Begin transaction
+    $conn->begin_transaction();
+    
+    try {
+        // First, check if there's an entry for this seller and month
+        $check_query = "SELECT id, amount FROM admin_profits 
+                       WHERE seller_id = ? AND month_year = ?";
+        $stmt = $conn->prepare($check_query);
+        $stmt->bind_param("is", $order['seller_id'], $current_month);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            // Update existing record
+            $record = $result->fetch_assoc();
+            $update_query = "UPDATE admin_profits 
+                            SET amount = amount + ?, 
+                                orders_count = orders_count + 1 
+                            WHERE id = ?";
+            $stmt = $conn->prepare($update_query);
+            $stmt->bind_param("di", $profit_amount, $record['id']);
+            $stmt->execute();
+        } else {
+            // Insert new record
+            $insert_query = "INSERT INTO admin_profits 
+                            (seller_id, amount, month_year, order_id, orders_count) 
+                            VALUES (?, ?, ?, ?, 1)";
+            $stmt = $conn->prepare($insert_query);
+            $stmt->bind_param("idss", $order['seller_id'], $profit_amount, $current_month, $order_id);
+            $stmt->execute();
+        }
+        
+        $conn->commit();
+        return true;
+    } catch (Exception $e) {
+        $conn->rollback();
+        error_log("Error calculating admin profit: " . $e->getMessage());
+        return false;
+    }
+}
+
 // Close the database connection when done
 register_shutdown_function(function() use ($conn) {
     $conn->close();
 });
+
+// Reset admin_profits table
+$conn->query("TRUNCATE TABLE admin_profits");
+
+// Script to recalculate admin profits from existing orders
+$orders_query = "SELECT order_id FROM orders_table WHERE payment_status = 'paid' AND order_status = 'Completed'";
+$orders_result = $conn->query($orders_query);
+
+while ($order = $orders_result->fetch_assoc()) {
+    calculateAndRecordAdminProfit($conn, $order['order_id']);
+}
 ?>

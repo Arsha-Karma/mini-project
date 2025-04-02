@@ -1,0 +1,116 @@
+2025-03-20 11:25:29: POST Data: Array
+(
+    [razorpay_payment_id] => pay_Q90jmh9LdwrHct
+    [order_id] => PERF174246628824
+    [amount] => 1050
+    [fullname] => ayush
+    [email] => arshaprasobhan03@gmail.com
+    [phone] => 9876567887
+    [address] => Abc Street
+    [city] => Erumely
+    [postal_code] => 686510
+)
+
+2025-03-20 11:25:29: Attempting to insert into orders_table
+2025-03-20 11:25:29: Order record inserted successfully
+2025-03-20 11:25:29: Attempting to insert into payment_table
+2025-03-20 11:25:29: Payment record inserted successfully
+2025-03-20 11:25:29: Updating cart status and product stock
+2025-03-20 11:25:29: Error occurred: Unknown column 'c.status' in 'where clause'
+2025-03-20 11:28:34: POST Data: Array
+(
+    [razorpay_payment_id] => pay_Q90n2q3HBc3R1F
+    [order_id] => PERF174246645224
+    [amount] => 680
+    [fullname] => ayush
+    [email] => arshaprasobhan03@gmail.com
+    [phone] => 9876567887
+    [address] => Abc Street
+    [city] => Erumely
+    [postal_code] => 686510
+)
+
+2025-03-20 11:28:34: Attempting to insert into orders_table
+2025-03-20 11:28:34: Order record inserted successfully
+2025-03-20 11:28:34: Attempting to insert into payment_table
+2025-03-20 11:28:34: Payment record inserted successfully
+2025-03-20 11:28:34: Updating cart status and product stock
+2025-03-20 11:28:34: Transaction committed successfully
+2025-03-20 11:43:05: POST Data: Array
+(
+    [razorpay_payment_id] => pay_Q912NctxlXjBRb
+    [order_id] => PERF174246731424
+    [amount] => 890
+    [fullname] => Arsha
+    [email] => arshaprasobhan03@gmail.com
+    [phone] => 7736535491
+    [address] => Varakumala(H) Mukkottuthara
+    [city] => Erumely
+    [postal_code] => 686510
+)
+
+2025-03-20 11:43:05: Attempting to insert into orders_table
+2025-03-20 11:43:05: Order record inserted successfully
+2025-03-20 11:43:05: Attempting to insert into payment_table
+2025-03-20 11:43:05: Payment record inserted successfully
+2025-03-20 11:43:05: Updating cart status and product stock
+2025-03-20 11:43:05: Transaction committed successfully
+2025-03-21 04:45:23: POST Data: Array
+(
+    [razorpay_payment_id] => pay_Q9IQmLfICO01l9
+    [order_id] => PERF17425286674
+    [amount] => 785
+    [fullname] => Arshak
+    [email] => arshaprasobh318@gmail.com
+    [phone] => 7736535491
+    [address] => Varakumala (H) ,Mukkottuthara
+    [city] => Erumeli
+    [postal_code] => 686510
+)
+
+2025-03-21 04:45:23: Attempting to insert into orders_table
+2025-03-21 04:45:23: Order record inserted successfully
+2025-03-21 04:45:23: Attempting to insert into payment_table
+2025-03-21 04:45:23: Payment record inserted successfully
+2025-03-21 04:45:23: Updating cart status and product stock
+2025-03-21 04:45:23: Transaction committed successfully
+2025-03-21 06:27:04: POST Data: Array
+(
+    [razorpay_payment_id] => pay_Q9KAC0SksjeMZA
+    [order_id] => PERF17425347814
+    [amount] => 1995
+    [fullname] => Arshak
+    [email] => arshaprasobh318@gmail.com
+    [phone] => 8756797766
+    [address] => Varakumala (H) ,Mukkottuthara
+    [city] => Erumeli
+    [postal_code] => 686510
+)
+
+2025-03-21 06:27:04: Order record inserted successfully for product ID: 6
+2025-03-21 06:27:04: Transaction committed successfully
+2025-03-21 07:13:27: POST Data: Array
+(
+    [razorpay_payment_id] => pay_Q9KxAuSrendLXP
+    [order_id] => PERF17425375674
+    [amount] => 785
+    [fullname] => Arshak
+    [email] => arshaprasobh318@gmail.com
+    [phone] => 8756797766
+    [address] => Varakumala (H) ,Mukkottuthara
+    [city] => Erumeli
+    [postal_code] => 686510
+)
+
+2025-03-21 07:13:27: Order record inserted successfully for product ID: 7
+2025-03-21 07:13:27: Transaction committed successfully
+2025-03-21 15:49:12: Error processing payment: Missing required payment information
+2025-03-21 15:49:12: POST Data: Array
+(
+)
+
+2025-03-21 15:54:49: Error processing payment: Missing required payment information
+2025-03-21 15:54:49: POST Data: Array
+(
+)
+

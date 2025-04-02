@@ -95,6 +95,10 @@ if ($conn->query($sql) === TRUE) {
 
     $conn->query($sql_seller);
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     // Drop redundant columns from tbl_seller if they exist
     $drop_seller_columns = "ALTER TABLE tbl_seller 
         DROP COLUMN IF EXISTS email,
@@ -102,6 +106,17 @@ if ($conn->query($sql) === TRUE) {
         DROP COLUMN IF EXISTS role_type,
         DROP COLUMN IF EXISTS verification_status";
     $conn->query($drop_seller_columns);
+<<<<<<< HEAD
+=======
+=======
+
+    // Alter tbl_seller to add verification_status column if it doesn't exist
+    if (!columnExists($conn, 'tbl_seller', 'verification_status')) {
+        $alter_seller = "ALTER TABLE tbl_seller ADD COLUMN verification_status ENUM('active', 'disabled') DEFAULT 'active'";
+        $conn->query($alter_seller);
+    }
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 
     // Add new columns to tbl_seller
     $alter_seller_table = "ALTER TABLE tbl_seller 
@@ -447,6 +462,13 @@ if ($conn->query($sql) === TRUE) {
     } catch (Exception $e) {
         error_log("Error altering payment_table: " . $e->getMessage());
     }
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 
     // Add gift_option columns to orders_table
     $alter_orders_table = "ALTER TABLE orders_table 
@@ -503,6 +525,10 @@ if ($conn->query($sql) === TRUE) {
         error_log("Error creating index on admin_profits: " . $e->getMessage());
     }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     // Modify the admin_profits table in the database setup section
     $alter_admin_profits = "ALTER TABLE admin_profits 
         ADD COLUMN IF NOT EXISTS order_id VARCHAR(100) DEFAULT NULL,
@@ -515,6 +541,11 @@ if ($conn->query($sql) === TRUE) {
         error_log("Error altering admin_profits table: " . $e->getMessage());
     }
 
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     // Create contact_messages table
     $sql_contact_messages = "CREATE TABLE IF NOT EXISTS contact_messages (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -535,11 +566,22 @@ if ($conn->query($sql) === TRUE) {
     $sql_add_is_deleted = "ALTER TABLE contact_messages 
                           ADD COLUMN IF NOT EXISTS is_deleted TINYINT(1) DEFAULT 0";
     $conn->query($sql_add_is_deleted);
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 
     // Add is_replied column to contact_messages if it doesn't exist
     $sql_add_is_replied = "ALTER TABLE contact_messages 
                           ADD COLUMN IF NOT EXISTS is_replied TINYINT(1) DEFAULT 0";
     $conn->query($sql_add_is_replied);
+<<<<<<< HEAD
+=======
+=======
+=======
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 }
 
 // Helper Functions
@@ -832,6 +874,10 @@ function deleteSeller($conn, $seller_id) {
     }
 }
 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 // Add this function after your other functions
 function calculateAndRecordAdminProfit($conn, $order_id) {
     // Check if profit for this order has already been recorded to prevent duplicates
@@ -914,6 +960,11 @@ function calculateAndRecordAdminProfit($conn, $order_id) {
     }
 }
 
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 // Close the database connection when done
 register_shutdown_function(function() use ($conn) {
     $conn->close();

@@ -1458,8 +1458,22 @@ function handleImageUpload($file) {
         function validateDescription(input) {
             const value = input.value.trim();
             const validationDiv = input.nextElementSibling;
+<<<<<<< HEAD
             // Updated pattern to allow letters, whitespaces, and special characters
             const pattern = /^[A-Za-z\s\.,!@#$%^&*()_\-+=\[\]{};:'"\\|/<>?`~]+$/;
+=======
+<<<<<<< HEAD
+            // Updated pattern to allow letters, whitespaces, and special characters
+            const pattern = /^[A-Za-z\s\.,!@#$%^&*()_\-+=\[\]{};:'"\\|/<>?`~]+$/;
+=======
+<<<<<<< HEAD
+            // Updated pattern to allow letters, whitespaces, and special characters
+            const pattern = /^[A-Za-z\s\.,!@#$%^&*()_\-+=\[\]{};:'"\\|/<>?`~]+$/;
+=======
+            const pattern = /^[A-Za-z\s]+$/;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
             
             // Remove any existing validation states
             input.classList.remove('is-invalid');
@@ -1476,9 +1490,27 @@ function handleImageUpload($file) {
                 return false;
             }
             
+<<<<<<< HEAD
             // Check for allowed characters
             if (!pattern.test(value)) {
                 showValidationMessage(input, 'Description can only contain letters, spaces, and special characters');
+=======
+<<<<<<< HEAD
+            // Check for allowed characters
+            if (!pattern.test(value)) {
+                showValidationMessage(input, 'Description can only contain letters, spaces, and special characters');
+=======
+<<<<<<< HEAD
+            // Check for allowed characters
+            if (!pattern.test(value)) {
+                showValidationMessage(input, 'Description can only contain letters, spaces, and special characters');
+=======
+            // Check for letters and spaces only
+            if (!pattern.test(value)) {
+                showValidationMessage(input, 'Description can only contain letters and spaces');
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                 return false;
             }
             

@@ -4,8 +4,17 @@ require_once 'dbconnect.php';
 header('Content-Type: application/json');
 
 if (isset($_GET['query'])) {
+<<<<<<< HEAD
     $original_query = $_GET['query'];
     $search = '%' . $original_query . '%';
+=======
+<<<<<<< HEAD
+    $original_query = $_GET['query'];
+    $search = '%' . $original_query . '%';
+=======
+    $search = '%' . $_GET['query'] . '%';
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     
     // First, search for matching categories
     $categoryQuery = "
@@ -15,7 +24,15 @@ if (isset($_GET['query'])) {
         LIMIT 3
     ";
     
+<<<<<<< HEAD
     // Then search for matching products with fuzzy matching
+=======
+<<<<<<< HEAD
+    // Then search for matching products with fuzzy matching
+=======
+    // Then search for matching products
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     $productQuery = "
         SELECT DISTINCT 
             'product' as type,
@@ -28,6 +45,10 @@ if (isset($_GET['query'])) {
         FROM tbl_product p
         LEFT JOIN tbl_brands b ON p.brand_id = b.brand_id
         LEFT JOIN tbl_categories c ON p.category_id = c.category_id
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
         WHERE (
             p.name LIKE ? 
             OR b.name LIKE ?
@@ -49,6 +70,16 @@ if (isset($_GET['query'])) {
                 WHEN SOUNDEX(p.name) = SOUNDEX(?) THEN 4 /* Sound-alike matches */
                 ELSE 5 /* Levenshtein distance matches last */
             END
+<<<<<<< HEAD
+=======
+=======
+        WHERE (p.name LIKE ? 
+            OR b.name LIKE ?
+            OR c.name LIKE ?)
+            AND p.deleted = 0
+            AND p.Stock_quantity > 0
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
         LIMIT 5
     ";
     
@@ -67,6 +98,10 @@ if (isset($_GET['query'])) {
         ];
     }
     
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     // Check if MySQL has LEVENSHTEIN function installed
     // If not, we'll use a simplified query without it
     $hasLevenshtein = false;
@@ -130,6 +165,14 @@ if (isset($_GET['query'])) {
             $search, $search, $search);
     }
     
+<<<<<<< HEAD
+=======
+=======
+    // Get matching products
+    $stmt = $conn->prepare($productQuery);
+    $stmt->bind_param("sss", $search, $search, $search);
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     $stmt->execute();
     $result = $stmt->get_result();
     
@@ -145,6 +188,10 @@ if (isset($_GET['query'])) {
         ];
     }
     
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     // If we didn't find enough suggestions, try an even more flexible search
     if (count($suggestions) < 3 && strlen($original_query) >= 3) {
         // Break the query into individual characters and search for products containing most of them
@@ -188,6 +235,11 @@ if (isset($_GET['query'])) {
         }
     }
     
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     echo json_encode(['success' => true, 'suggestions' => $suggestions]);
 } else {
     echo json_encode(['success' => false, 'message' => 'No search query provided']);

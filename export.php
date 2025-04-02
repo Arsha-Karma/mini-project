@@ -35,6 +35,10 @@ switch ($type) {
         $headers = ['Username', 'Email', 'Phone Number', 'Status', 'Registration Date'];
         
         $query = "SELECT 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
             s.username,
             s.email,
             s.Phoneno,
@@ -43,6 +47,19 @@ switch ($type) {
             FROM tbl_users u
             JOIN tbl_signup s ON u.Signup_id = s.Signup_id
             WHERE s.role_type = 'user'
+<<<<<<< HEAD
+=======
+=======
+            u.username,
+            COALESCE(u.email, s.email) as email,
+            COALESCE(u.phoneno, s.Phoneno) as phoneno,
+            u.verification_status,
+            s.created_at
+            FROM tbl_users u
+            LEFT JOIN tbl_signup s ON u.Signup_id = s.Signup_id
+            WHERE u.role_type = 'user'
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
             ORDER BY s.created_at DESC";
         
         $result = mysqli_query($conn, $query);
@@ -52,7 +69,15 @@ switch ($type) {
                 $data[] = [
                     $row['username'],
                     $row['email'],
+<<<<<<< HEAD
                     $row['Phoneno'],
+=======
+<<<<<<< HEAD
+                    $row['Phoneno'],
+=======
+                    $row['phoneno'],
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                     $row['verification_status'],
                     $row['created_at']
                 ];
@@ -66,6 +91,10 @@ switch ($type) {
         
         $query = "SELECT 
             sl.Sellername,
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
             s.email,
             s.Phoneno,
             s.verification_status,
@@ -73,6 +102,18 @@ switch ($type) {
             FROM tbl_seller sl
             JOIN tbl_signup s ON sl.Signup_id = s.Signup_id
             WHERE s.role_type = 'seller'
+<<<<<<< HEAD
+=======
+=======
+            COALESCE(sl.email, s.email) as email,
+            COALESCE(sl.phoneno, s.Phoneno) as phoneno,
+            sl.verification_status,
+            s.created_at
+            FROM tbl_seller sl
+            LEFT JOIN tbl_signup s ON sl.Signup_id = s.Signup_id
+            WHERE sl.role_type = 'seller'
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
             ORDER BY s.created_at DESC";
         
         $result = mysqli_query($conn, $query);
@@ -82,7 +123,15 @@ switch ($type) {
                 $data[] = [
                     $row['Sellername'],
                     $row['email'],
+<<<<<<< HEAD
                     $row['Phoneno'],
+=======
+<<<<<<< HEAD
+                    $row['Phoneno'],
+=======
+                    $row['phoneno'],
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                     $row['verification_status'],
                     $row['created_at']
                 ];

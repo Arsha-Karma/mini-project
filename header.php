@@ -22,7 +22,15 @@ if (session_status() === PHP_SESSION_NONE) {
                 <ul>
                     <li><a href="index.php">Home</a></li>
                     <li><a href="productslist.php">Products</a></li>
+<<<<<<< HEAD
                     
+=======
+<<<<<<< HEAD
+                    
+=======
+                    <li><a href="aboutas.php">About As</a></li>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                     <li><a href="wishlist.php">Wishlist</a></li>
                     <li><a href="orders.php" class="nav-link">My Orders</a></li>
                 </ul>

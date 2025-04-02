@@ -603,6 +603,10 @@ if (isset($_SESSION['contact_form_data']) && isset($_SESSION['logged_in'])) {
                     
                     <div class="form-group">
                         <label for="subject">Subject</label>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                         <input type="text" id="subject" name="subject" value="<?php echo $subject; ?>" 
                                placeholder="What is your message about?"
                                <?php if(!isset($_SESSION['logged_in'])): ?>readonly="readonly" style="background-color: #eee; cursor: not-allowed;"<?php endif; ?>
@@ -612,6 +616,13 @@ if (isset($_SESSION['contact_form_data']) && isset($_SESSION['logged_in'])) {
                         <span id="subjectError" class="error-text" style="display: none;">
                             <i class="fas fa-exclamation-circle"></i> Only letters, spaces, and basic punctuation are allowed
                         </span>
+<<<<<<< HEAD
+=======
+=======
+                        <input type="text" id="subject" name="subject" value="<?php echo $subject; ?>" placeholder="What is your message about?"
+                               <?php if(!isset($_SESSION['logged_in'])): ?>readonly="readonly" style="background-color: #eee; cursor: not-allowed;"<?php endif; ?>>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                         <?php if(!empty($subjectErr)): ?>
                         <span class="error-text"><i class="fas fa-exclamation-circle"></i> <?php echo $subjectErr; ?></span>
                         <?php endif; ?>
@@ -619,6 +630,10 @@ if (isset($_SESSION['contact_form_data']) && isset($_SESSION['logged_in'])) {
                     
                     <div class="form-group">
                         <label for="message">Your Message</label>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                         <textarea id="message" name="message" 
                                   placeholder="Type your message here..."
                                   <?php if(!isset($_SESSION['logged_in'])): ?>readonly="readonly" style="background-color: #eee; cursor: not-allowed; resize: none;"<?php endif; ?>
@@ -628,18 +643,37 @@ if (isset($_SESSION['contact_form_data']) && isset($_SESSION['logged_in'])) {
                         <span id="messageError" class="error-text" style="display: none;">
                             <i class="fas fa-exclamation-circle"></i> Only letters, spaces, and basic punctuation are allowed
                         </span>
+<<<<<<< HEAD
+=======
+=======
+                        <textarea id="message" name="message" placeholder="Type your message here..."
+                                  <?php if(!isset($_SESSION['logged_in'])): ?>readonly="readonly" style="background-color: #eee; cursor: not-allowed; resize: none;"<?php endif; ?>><?php echo $message; ?></textarea>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                         <?php if(!empty($messageErr)): ?>
                         <span class="error-text"><i class="fas fa-exclamation-circle"></i> <?php echo $messageErr; ?></span>
                         <?php endif; ?>
                     </div>
                     
+<<<<<<< HEAD
                     <button type="submit" class="submit-btn" <?php if(!isset($_SESSION['logged_in'])): ?>style="opacity: 0.7;"<?php endif; ?> onclick="return validateForm()">
+=======
+<<<<<<< HEAD
+                    <button type="submit" class="submit-btn" <?php if(!isset($_SESSION['logged_in'])): ?>style="opacity: 0.7;"<?php endif; ?> onclick="return validateForm()">
+=======
+                    <button type="submit" class="submit-btn" <?php if(!isset($_SESSION['logged_in'])): ?>style="opacity: 0.7;"<?php endif; ?>>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                         <i class="fas fa-paper-plane"></i> <?php echo isset($_SESSION['logged_in']) ? 'Send Message' : 'Login to Send Message'; ?>
                     </button>
                 </form>
             </div>
         </div>
     </div>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 
     <script>
     let subjectValid = true;
@@ -688,5 +722,10 @@ if (isset($_SESSION['contact_form_data']) && isset($_SESSION['logged_in'])) {
         return subjectValid && messageValid;
     }
     </script>
+<<<<<<< HEAD
+=======
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
 </body>
 </html>

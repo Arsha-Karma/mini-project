@@ -1370,6 +1370,10 @@ function getCategoryType($name) {
 <body>
 <nav>
     <div class="logo">
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
         <a href="index.php">
             <img src="image/logo.png" alt="Perfume Paradise Logo">
         </a>
@@ -1377,19 +1381,152 @@ function getCategoryType($name) {
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <div class="nav-links">
         <a href="index.php">Home</a> 
+<<<<<<< HEAD
+=======
+=======
+        <img src="image/logo.png" alt="Perfume Paradise Logo">
+    </div>
+<<<<<<< HEAD
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="nav-links">
+        <a href="index.php">Home</a> 
+=======
+    &nbsp;&nbsp;
+    <div class="nav-links">
+        <a href="index.php">Home</a> &nbsp;&nbsp;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
         <div class="dropdown">
             <a href="#categories">Categories</a>
             <div class="dropdown-content">
                 <div class="category-dropdown">
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                     <?php foreach($categories as $category): ?>
                         <a href="productslist.php?category=<?php echo $category['category_id']; ?>">
                             <?php echo htmlspecialchars($category['name']); ?>
                         </a>
                     <?php endforeach; ?>
+<<<<<<< HEAD
+=======
+=======
+                    <a href="men_perfumes.php">Men's Perfumes</a>
+                    <div class="subcategory-dropdown">
+                        <div class="subcategory-item">
+                            <a href="classic_timeless.php">Classic and Timeless</a>
+                            <div class="brands-dropdown">
+                                <a href="#">Hugo Boss</a>
+                            </div>
+                        </div>
+                        <div class="subcategory-item">
+                            <a href="eau_de_toilette.php">Eau de Toilette</a>
+                            <div class="brands-dropdown">
+                                <a href="#">Chanel</a>
+                                <a href="#">Dior</a>
+                                <a href="#">Versace</a>
+                            </div>
+                        </div>
+                        <div class="subcategory-item">
+                            <a href="sport_fragrances.php">Sport Fragrances</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="women_perfumes.php">Women's Perfumes</a>
+                    <div class="subcategory-dropdown">
+                        <div class="subcategory-item">
+                            <a href="floral_scents.php">Floral Scents</a>
+                            <div class="brands-dropdown">
+                                <a href="#">Chanel</a>
+                                <a href="#">Gucci</a>
+                            </div>
+                        </div>
+                        <div class="subcategory-item">
+                            <a href="fruity_fragrances.php">Fruity Fragrances</a>
+                            <div class="brands-dropdown">
+                                <a href="#">Escada</a>
+                                <a href="#">Marc Jacobs</a>
+                            </div>
+                        </div>
+                        <div class="subcategory-item">
+                            <a href="romantic_sweet.php">Romantic and Sweet</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="unisex_perfumes.php">Unisex Perfumes</a>
+                    <div class="subcategory-dropdown">
+                        <div class="subcategory-item">
+                            <a href="fresh_citrus.php">Fresh and Citrus</a>
+                            <div class="brands-dropdown">
+                                <a href="#">Acqua di Parma</a>
+                                <a href="#">Tom Ford</a>
+                            </div>
+                        </div>
+                        <div class="subcategory-item">
+                            <a href="spicy_unisex.php">Spicy Unisex</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="luxury_perfumes.php">Luxury Perfumes</a>
+                    <div class="subcategory-dropdown">
+                        <div class="subcategory-item">
+                            <a href="limited_edition.php">Limited Edition</a>
+                            <div class="brands-dropdown">
+                                <a href="#">Clive Christian</a>
+                                <a href="#">Roja Dove</a>
+                            </div>
+                        </div>
+                        <div class="subcategory-item">
+                            <a href="royal_oud.php">Royal and Oud</a>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="niche_perfumes.php">Niche Perfumes</a>
+                    <div class="subcategory-dropdown">
+                        <!-- Original subcategories remain unchanged -->
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="body_mists.php">Body Mists & Colognes</a>
+                    <div class="subcategory-dropdown">
+                        <!-- Original subcategories remain unchanged -->
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="skincare_fragrances.php">Skincare Fragrances</a>
+                    <div class="subcategory-dropdown">
+                        <!-- Original subcategories remain unchanged -->
+                    </div>
+                </div>
+
+                <div class="category-dropdown">
+                    <a href="perfume_oils.php">Perfume Oils</a>
+                    <div class="subcategory-dropdown">
+                        <!-- Original subcategories remain unchanged -->
+                    </div>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                 </div>
             </div>
+<<<<<<< HEAD
         </div>
         <a href="Aboutas.php">Our story</a> 
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
         <a href="contactus.php">Contact Us</a>
     </div>
     &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
@@ -1401,6 +1538,27 @@ function getCategoryType($name) {
             </button>
         </div>
         <div class="search-suggestions" id="searchSuggestions"></div>
+<<<<<<< HEAD
+=======
+=======
+        <a href="contactus.php">Contact Us</a> 
+=======
+        </div> &nbsp;&nbsp;
+        <a href="Aboutas.php">Our story</a> &nbsp;&nbsp; &nbsp;&nbsp;
+        
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+        <!-- Search container moved here, after Our story -->
+        <div class="search-container">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search for perfumes, brands and more...">
+                <button type="button" class="search-button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+            <div class="search-suggestions" id="searchSuggestions"></div>
+        </div>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
     </div>
 
     <div class="nav-icons">
@@ -1414,7 +1572,19 @@ function getCategoryType($name) {
                 <span class="cart-count"><?php echo $_SESSION['cart_count']; ?></span>
             <?php endif; ?>
         </a>
+<<<<<<< HEAD
 
+=======
+<<<<<<< HEAD
+
+=======
+<<<<<<< HEAD
+
+=======
+&nbsp;
+>>>>>>> 9f0a29f027f586f039655aa259fce1bf1090d34e
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
         <div class="profile-icon">
             <?php if(isset($_SESSION['user_id'])): ?>
                 <div class="user-circle" id="userCircle">
@@ -1427,6 +1597,13 @@ function getCategoryType($name) {
                     <a href="profile.php">
                         <i class="fas fa-user"></i> Profile
                     </a>
+<<<<<<< HEAD
+=======
+<<<<<<< HEAD
+=======
+                    
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                     <a href="orders.php">
                         <i class="fas fa-shopping-bag"></i> Orders
                     </a>
@@ -1576,7 +1753,17 @@ function getCategoryType($name) {
                 <h3 class="footer-title">Information</h3>
                 <ul class="footer-links">
                     <li><a href="Aboutas.php">About Us</a></li>
+<<<<<<< HEAD
                     <li><a href="contactus.php">Contact Us</a></li>
+=======
+<<<<<<< HEAD
+                    <li><a href="contactus.php">Contact Us</a></li>
+=======
+                    <li><a href="#">Delivery Information</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms & Conditions</a></li>
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                 </ul>
             </div>
             <div>
@@ -1586,7 +1773,14 @@ function getCategoryType($name) {
                     <li><a href="orders.php">Order History</a></li>
                     <li><a href="wishlist.php">Wish List</a></li>
                    
+<<<<<<< HEAD
                    
+=======
+<<<<<<< HEAD
+                   
+=======
+>>>>>>> 44b83f47263f36e84352386ff3b8d1b42f4b87ef
+>>>>>>> bc6d503dcef2e4b397dbc83c8a531df1bfb282cf
                 </ul>
             </div>
             <div>

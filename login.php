@@ -18,105 +18,96 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['google_login'])) {
     $google_uid = isset($_POST['google_uid']) ? sanitize_input($conn, $_POST['google_uid']) : '';
     
     if (empty($google_email) || empty($google_uid)) {
-        $error_message = "Invalid Google account data";
-    } else {
-        try {
-            // Check if user already exists
-            $stmt = $conn->prepare("SELECT Signup_id, username, role_type, verification_status 
-                                  FROM tbl_signup 
-                                  WHERE email = ? OR google_uid = ?");
+        echo json_encode(['error' => 'Invalid Google account data']);
+        exit();
+    }
+
+    try {
+        // Check if user exists with this email
+        $stmt = $conn->prepare("SELECT * FROM tbl_signup WHERE email = ?");
+        $stmt->bind_param("s", $google_email);
+        $stmt->execute();
+        $result = $stmt->get_result();
+        
+        if ($result->num_rows > 0) {
+            // User exists
+            $user = $result->fetch_assoc();
             
-            if (!$stmt) {
-                throw new Exception("Failed to prepare statement: " . $conn->error);
+            if ($user['verification_status'] === 'disabled') {
+                echo json_encode(['error' => 'Account is disabled']);
+                exit();
             }
+
+            // Set session variables
+            $_SESSION['user_id'] = $user['Signup_id'];
+            $_SESSION['username'] = $user['username'];
+            $_SESSION['role'] = $user['role_type'];
+            $_SESSION['logged_in'] = true;
             
-            $stmt->bind_param("ss", $google_email, $google_uid);
-            
-            if (!$stmt->execute()) {
-                throw new Exception("Failed to execute statement: " . $stmt->error);
+            // Determine redirect URL based on role
+            switch ($user['role_type']) {
+                case 'admin':
+                    echo json_encode(['success' => true, 'redirect' => 'admindashboard.php']);
+                    break;
+                case 'seller':
+                    echo json_encode(['success' => true, 'redirect' => 'seller-dashboard.php']);
+                    break;
+                default:
+                    echo json_encode(['success' => true, 'redirect' => 'index.php']);
+                    break;
             }
-            
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows === 1) {
-                // User exists, login the user
-                $user = $result->fetch_assoc();
-                
-                if ($user['verification_status'] === 'disabled') {
-                    $show_deactivation_modal = true;
-                    // If you have the recordLoginAttempt function
-                    if (function_exists('recordLoginAttempt')) {
-                        recordLoginAttempt($conn, $user['Signup_id'], 'failed');
-                    }
-                } else {
-                    // If you have the recordLoginAttempt function
-                    if (function_exists('recordLoginAttempt')) {
-                        recordLoginAttempt($conn, $user['Signup_id'], 'success');
-                    }
-                    
-                    // Set session variables
-                    $_SESSION['user_id'] = $user['Signup_id'];
-                    $_SESSION['username'] = $user['username'];
-                    $_SESSION['role'] = $user['role_type'];
-                    $_SESSION['logged_in'] = true;
-                    
-                    // Redirect based on role
-                    switch ($user['role_type']) {
-                        case 'admin':
-                            header("Location: admindashboard.php");
-                            break;
-                        case 'seller':
-                            header("Location: seller-dashboard.php");
-                            break;
-                        default:
-                            header("Location: index.php");
-                            break;
-                    }
-                    exit();
+
+            // After successful login, check seller status
+            if ($user['role_type'] === 'seller') {
+                $seller_query = "SELECT verified_status FROM tbl_seller WHERE Signup_id = ?";
+                $stmt = $conn->prepare($seller_query);
+                $stmt->bind_param("i", $user['Signup_id']);
+                $stmt->execute();
+                $result = $stmt->get_result();
+                $seller_status = $result->fetch_assoc();
+
+                if ($seller_status['verified_status'] === 'rejected') {
+                    $_SESSION['verification_rejected'] = true;
                 }
+            }
+
+            // After successful login
+            if (isset($_SESSION['contact_form_data']) && isset($_SESSION['contact_form_data']['redirect_after'])) {
+                $redirect_url = $_SESSION['contact_form_data']['redirect_after'];
+                header("Location: $redirect_url");
+                exit();
             } else {
-                // User doesn't exist, register the user
-                // Generate username from Google name or email
-                $username = preg_replace('/[^a-zA-Z0-9]/', '', $google_name);
-                $username = strtolower($username ?: strtok($google_email, '@')) . rand(100, 999);
-                $role_type = 'user'; // Default role
-                
-                // Insert new user into the database
-                // Note: You need to have email and google_uid columns in your tbl_signup table
-                $stmt = $conn->prepare("INSERT INTO tbl_signup (username, email, google_uid, role_type, verification_status, created_at) 
-                                     VALUES (?, ?, ?, ?, 'verified', NOW())");
-                
-                if (!$stmt) {
-                    throw new Exception("Failed to prepare statement: " . $conn->error);
-                }
-                
-                $stmt->bind_param("ssss", $username, $google_email, $google_uid, $role_type);
-                
-                if (!$stmt->execute()) {
-                    throw new Exception("Failed to execute statement: " . $stmt->error);
-                }
-                
-                $userId = $conn->insert_id;
-                
-                // If you have the recordLoginAttempt function
-                if (function_exists('recordLoginAttempt')) {
-                    recordLoginAttempt($conn, $userId, 'success');
-                }
-                
-                // Set session variables
-                $_SESSION['user_id'] = $userId;
-                $_SESSION['username'] = $username;
-                $_SESSION['role'] = $role_type;
-                $_SESSION['logged_in'] = true;
-                
-                // Redirect to the appropriate page
+                // Your normal redirect logic
                 header("Location: index.php");
                 exit();
             }
-        } catch (Exception $e) {
-            error_log("Google login error: " . $e->getMessage());
-            $error_message = "An error occurred during Google login. Please try again later.";
+        } else {
+            // Create new user as regular user
+            $username = strtolower(preg_replace('/[^a-zA-Z0-9]/', '', explode('@', $google_email)[0])) . rand(100, 999);
+            
+            $stmt = $conn->prepare("INSERT INTO tbl_signup (username, email, google_uid, role_type, verification_status, created_at) 
+                                  VALUES (?, ?, ?, 'user', 'verified', NOW())");
+            $stmt->bind_param("sss", $username, $google_email, $google_uid);
+            
+            if ($stmt->execute()) {
+                $userId = $conn->insert_id;
+                
+                // Set session variables for new user
+                $_SESSION['user_id'] = $userId;
+                $_SESSION['username'] = $username;
+                $_SESSION['role'] = 'user';
+                $_SESSION['logged_in'] = true;
+                
+                echo json_encode(['success' => true, 'redirect' => 'index.php']);
+                exit();
+            } else {
+                throw new Exception("Failed to create new user");
+            }
         }
+    } catch (Exception $e) {
+        error_log("Google login error: " . $e->getMessage());
+        echo json_encode(['error' => 'An error occurred during login']);
+        exit();
     }
 }
 
@@ -159,18 +150,40 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
                     $_SESSION['role'] = $user['role_type'];
                     $_SESSION['logged_in'] = true;
 
-                    switch ($user['role_type']) {
-                        case 'admin':
-                            header("Location: admindashboard.php");
-                            break;
-                        case 'seller':
-                            header("Location: seller-dashboard.php");
-                            break;
-                        default:
-                            header("Location: index.php");
-                            break;
+                    // After successful login, check seller status
+                    if ($user['role_type'] === 'seller') {
+                        $seller_query = "SELECT verified_status FROM tbl_seller WHERE Signup_id = ?";
+                        $stmt = $conn->prepare($seller_query);
+                        $stmt->bind_param("i", $user['Signup_id']);
+                        $stmt->execute();
+                        $result = $stmt->get_result();
+                        $seller_status = $result->fetch_assoc();
+
+                        if ($seller_status['verified_status'] === 'rejected') {
+                            $_SESSION['verification_rejected'] = true;
+                        }
                     }
-                    exit();
+
+                    // Check for contact form redirect first
+                    if (isset($_SESSION['contact_form_data']) && isset($_SESSION['contact_form_data']['redirect_after'])) {
+                        $redirect_url = $_SESSION['contact_form_data']['redirect_after'];
+                        header("Location: $redirect_url");
+                        exit();
+                    } else {
+                        // Role-based redirects
+                        switch ($user['role_type']) {
+                            case 'admin':
+                                header("Location: admindashboard.php");
+                                break;
+                            case 'seller':
+                                header("Location: seller-dashboard.php");
+                                break;
+                            default:
+                                header("Location: index.php");
+                                break;
+                        }
+                        exit();
+                    }
                 } else {
                     recordLoginAttempt($conn, $user['Signup_id'], 'failed');
                     $error_message = "Invalid password";
@@ -443,6 +456,33 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         a:hover {
             color: #d65d45;
         }
+
+        .alert {
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .alert-danger {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+
+        .alert h4 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+
+        .alert i {
+            margin-right: 10px;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            border-color: #ffeeba;
+            color: #856404;
+        }
     </style>
 </head>
 <body>
@@ -523,123 +563,104 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['login'])) {
         </div>
     </div>
 
-    <script>
-        // Show modal if PHP sets the flag
-        <?php if ($show_deactivation_modal): ?>
-        document.addEventListener('DOMContentLoaded', function() {
-            document.getElementById('deactivationModal').style.display = 'block';
-        });
-        <?php endif; ?>
+    <script type="module">
+        // Import Firebase modules with the latest version
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
-        // Function to close the modal
-        function closeModal() {
-            document.getElementById('deactivationModal').style.display = 'none';
-            window.location.href = 'login.php';
-        }
+        // Initialize Firebase with your config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCqfvYqt5NsPZH6Ib93tDOmWHHG0CEXkQw",
+            authDomain: "login-6ff35.firebaseapp.com",
+            projectId: "login-6ff35",
+            storageBucket: "login-6ff35.firebasestorage.app",
+            messagingSenderId: "355096580337",
+            appId: "1:355096580337:web:96cefdea88d02cf07f9950"
+        };
 
-        // Close modal if clicking outside
-        document.addEventListener('click', function(event) {
-            var modal = document.querySelector('.modal');
-            var overlay = document.getElementById('deactivationModal');
-            if (event.target === overlay) {
-                overlay.style.display = 'none';
-                window.location.href = 'login.php';
-            }
-        });
+        // Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const provider = new GoogleAuthProvider();
 
-        // Firebase configuration for Google Authentication
-        document.addEventListener('DOMContentLoaded', function() {
-            // Load Firebase scripts dynamically
-            const loadScript = (src) => {
-                return new Promise((resolve, reject) => {
-                    const script = document.createElement('script');
-                    script.src = src;
-                    script.onload = resolve;
-                    script.onerror = reject;
-                    document.head.appendChild(script);
-                });
-            };
+        // Get the Google login button
+        const googleLogin = document.getElementById("google-login-btn");
 
-            // Load Firebase scripts in sequence
-            loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js')
-                .then(() => loadScript('https://www.gstatic.com/firebasejs/9.22.0/firebase-auth-compat.js'))
-                .then(() => {
-                    // Initialize Firebase
-                    const firebaseConfig = {
-                        apiKey: "AIzaSyCqfvYqt5NsPZH6Ib93tDOmWHHG0CEXkQw",
-                        authDomain: "login-6ff35.firebaseapp.com",
-                        projectId: "login-6ff35",
-                        storageBucket: "login-6ff35.firebasestorage.app",
-                        messagingSenderId: "355096580337",
-                        appId: "1:355096580337:web:96cefdea88d02cf07f9950"
-                    };
+        if (googleLogin) {
+            googleLogin.addEventListener("click", async () => {
+                try {
+                    // Show loading state
+                    googleLogin.disabled = true;
+                    googleLogin.innerHTML = 'Signing in...';
 
-                    firebase.initializeApp(firebaseConfig);
-                    const auth = firebase.auth();
-                    auth.languageCode = 'en';
-                    const provider = new firebase.auth.GoogleAuthProvider();
+                    const result = await signInWithPopup(auth, provider);
+                    const user = result.user;
+
+                    const formData = new FormData();
+                    formData.append('google_login', '1');
+                    formData.append('google_email', user.email);
+                    formData.append('google_name', user.displayName || '');
+                    formData.append('google_uid', user.uid);
+
+                    const response = await fetch(window.location.href, {
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    const data = await response.json();
                     
-                    // Get Google login button
-                    const googleLogin = document.getElementById("google-login-btn");
-                    
-                    if (googleLogin) {
-                        googleLogin.addEventListener("click", function() {
-                            auth.signInWithPopup(provider)
-                                .then((result) => {
-                                    const user = result.user;
-                                    console.log(user);
-                                    
-                                    // Send the user data to the server via a form submission
-                                    const form = document.createElement('form');
-                                    form.method = 'POST';
-                                    form.action = '<?php echo htmlspecialchars($_SERVER["PHP_SELF"]); ?>';
-                                    form.style.display = 'none';
-                                    
-                                    // Add hidden fields with user data
-                                    const fields = {
-                                        'google_login': '1',
-                                        'google_email': user.email,
-                                        'google_name': user.displayName,
-                                        'google_uid': user.uid
-                                    };
-                                    
-                                    for (const key in fields) {
-                                        const input = document.createElement('input');
-                                        input.type = 'hidden';
-                                        input.name = key;
-                                        input.value = fields[key];
-                                        form.appendChild(input);
-                                    }
-                                    
-                                    document.body.appendChild(form);
-                                    form.submit();
-                                })
-                                .catch((error) => {
-                                    const errorCode = error.code;
-                                    const errorMessage = error.message;
-                                    console.error(errorCode, errorMessage);
-                                    
-                                    // Display error to user
-                                    const errorDiv = document.createElement('div');
-                                    errorDiv.className = 'error-message';
-                                    errorDiv.textContent = "Google login failed: " + errorMessage;
-                                    
-                                    const container = document.querySelector('.container');
-                                    const existingError = container.querySelector('.error-message');
-                                    
-                                    if (existingError) {
-                                        container.replaceChild(errorDiv, existingError);
-                                    } else {
-                                        container.insertBefore(errorDiv, container.firstChild.nextSibling);
-                                    }
-                                });
-                        });
+                    if (data.error) {
+                        throw new Error(data.error);
                     }
-                })
-                .catch(error => {
-                    console.error("Error loading Firebase scripts:", error);
-                });
-        });
+
+                    if (data.success && data.redirect) {
+                        // Redirect to the appropriate dashboard
+                        window.location.href = data.redirect;
+                    }
+
+                } catch (error) {
+                    console.error("Sign-in error:", error);
+                    let errorMessage = error.message || 'An error occurred during sign in. Please try again.';
+
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = errorMessage;
+
+                    const container = document.querySelector('.container');
+                    const existingError = container.querySelector('.error-message');
+                    if (existingError) {
+                        existingError.remove();
+                    }
+                    container.insertBefore(errorDiv, container.firstChild);
+
+                } finally {
+                    // Reset button state
+                    googleLogin.disabled = false;
+                    googleLogin.innerHTML = `
+                        <svg width="18" height="18" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+                            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+                            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+                            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+                            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+                            <path fill="none" d="M0 0h48v48H0z"/>
+                        </svg>
+                        &nbsp; &nbsp; &nbsp;Continue with Google
+                    `;
+                }
+            });
+        }
     </script>
+
+    <?php if ($show_deactivation_modal): ?>
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                document.getElementById('deactivationModal').style.display = 'block';
+            });
+
+            function closeModal() {
+                document.getElementById('deactivationModal').style.display = 'none';
+            }
+        </script>
+    <?php endif; ?>
 </body>
 </html>

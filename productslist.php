@@ -1,368 +1,108 @@
 <?php
-<<<<<<< HEAD
 session_start();
 require_once 'dbconnect.php';
 
-// Remove the seller-specific code that was causing the error
-// We don't need seller information for the product listing page
-$is_logged_in = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+// Fetch categories first
+$categoryQuery = "SELECT * FROM tbl_categories WHERE deleted = 0 ORDER BY name";
+$categoryResult = $conn->query($categoryQuery);
+$categories = $categoryResult->fetch_all(MYSQLI_ASSOC);
 
-// Fetch all active products
-$query = "
-    SELECT p.*, c.name as category_name, b.name as brand_name 
-    FROM tbl_product p
-    LEFT JOIN tbl_categories c ON p.category_id = c.category_id
-    LEFT JOIN tbl_brands b ON p.brand_id = b.brand_id
-    WHERE p.deleted = 0
-    ORDER BY p.created_at DESC
+// Fetch unique brands (preventing duplicate brand names)
+$brandQuery = "
+    SELECT MIN(b.brand_id) as brand_id, b.name 
+    FROM tbl_brands b 
+    LEFT JOIN tbl_product p ON b.brand_id = p.brand_id
+    WHERE b.deleted = 0 
+        AND p.deleted = 0
+        AND p.Stock_quantity > 0
+    GROUP BY LOWER(b.name)  -- Group by lowercase name to handle case variations
+    ORDER BY b.name ASC
 ";
+$brandResult = $conn->query($brandQuery);
+$brands = [];
+
+if ($brandResult) {
+    while ($row = $brandResult->fetch_assoc()) {
+        $brands[] = [
+            'brand_id' => $row['brand_id'],
+            'name' => ucwords(strtolower($row['name'])) // Ensure consistent capitalization
+        ];
+    }
+}
+
+// Fetch unique sizes from products
+$sizeQuery = "
+    SELECT DISTINCT size 
+    FROM tbl_product 
+    WHERE deleted = 0 
+        AND size IS NOT NULL 
+        AND size != ''
+        AND Stock_quantity > 0
+    ORDER BY 
+        CASE 
+            WHEN size LIKE '%ml' THEN CAST(SUBSTRING_INDEX(size, 'ml', 1) AS DECIMAL)
+            ELSE 0 
+        END ASC";
+$sizeResult = $conn->query($sizeQuery);
+$sizes = [];
+
+if ($sizeResult) {
+    while ($row = $sizeResult->fetch_assoc()) {
+        if (!empty($row['size'])) {
+            $sizes[] = $row['size'];
+        }
+    }
+}
+
+// Get filter parameters
+$category_id = isset($_GET['category']) ? (int)$_GET['category'] : null;
+$subcategory_id = isset($_GET['subcategory']) ? (int)$_GET['subcategory'] : null;
+$brand_id = isset($_GET['brand']) ? (int)$_GET['brand'] : null;
+
+// Build the WHERE clause based on filters
+$where_conditions = ['p.deleted = 0'];
+if ($category_id) {
+    $where_conditions[] = "p.category_id = " . $category_id;
+}
+if ($subcategory_id) {
+    $where_conditions[] = "p.subcategory_id = " . $subcategory_id;
+}
+if ($brand_id) {
+    $where_conditions[] = "p.brand_id = " . $brand_id;
+}
+
+$where_clause = implode(' AND ', $where_conditions);
+
+// Modify your product query to include the filters
+$query = "SELECT p.*, c.name as category_name, b.name as brand_name 
+          FROM tbl_product p
+          LEFT JOIN tbl_categories c ON p.category_id = c.category_id
+          LEFT JOIN tbl_brands b ON p.brand_id = b.brand_id
+          WHERE $where_clause
+          ORDER BY p.created_at DESC";
+
 $result = $conn->query($query);
+if (!$result) {
+    die("Query failed: " . $conn->error);
+}
 $products = $result->fetch_all(MYSQLI_ASSOC);
 
-// Fetch categories for the navigation
-$categoryQuery = "SELECT * FROM tbl_categories WHERE deleted = 0 ORDER BY name";
-$categories = $conn->query($categoryQuery)->fetch_all(MYSQLI_ASSOC);
-=======
-// Start the session
-session_start();
-
-// Regenerate session ID to prevent session fixation
-if (!isset($_SESSION['initiated'])) {
-    session_regenerate_id(true);
-    $_SESSION['initiated'] = true;
-}
-
-// Include database connection
-require_once 'dbconnect.php';
-
-// Remove the login check since we want public access
-// Only check session if we need user-specific features (like cart)
-$is_logged_in = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
-
-// Check for session timeout (e.g., 30 minutes)
-$inactive = 1800; // 30 minutes in seconds
-if (isset($_SESSION['last_activity']) && (time() - $_SESSION['last_activity'] > $inactive)) {
-    // Log out the user
-    session_unset();
-    session_destroy();
-    header('Location: login.php');
-    exit();
-}
-
-// Update last activity time
-$_SESSION['last_activity'] = time();
-
-// Get seller information
-$seller_id = $_SESSION['user_id'];
-$stmt = $conn->prepare("SELECT seller_id FROM tbl_seller WHERE Signup_id = ?");
-$stmt->bind_param("i", $seller_id);
-$stmt->execute();
-$result = $stmt->get_result();
-$seller_info = $result->fetch_assoc();
-$actual_seller_id = $seller_info['seller_id'];
-
-// Check if image_path column exists before adding it
-$checkColumnQuery = "SHOW COLUMNS FROM tbl_product LIKE 'image_path'";
-$columnResult = $conn->query($checkColumnQuery);
-
-if ($columnResult->num_rows === 0) {
-    $alterTableQuery = "ALTER TABLE tbl_product ADD COLUMN image_path VARCHAR(255) AFTER description";
-    if (!$conn->query($alterTableQuery)) {
-        die("Failed to add image_path column: " . $conn->error);
-    }
-}
-
-// Check if deleted column exists before adding it
-$checkDeletedColumnQuery = "SHOW COLUMNS FROM tbl_product LIKE 'deleted'";
-$deletedColumnResult = $conn->query($checkDeletedColumnQuery);
-
-if ($deletedColumnResult->num_rows === 0) {
-    $alterTableQuery = "ALTER TABLE tbl_product ADD COLUMN deleted BOOLEAN DEFAULT FALSE";
-    if (!$conn->query($alterTableQuery)) {
-        die("Failed to add deleted column: " . $conn->error);
-    }
-}
-
-// Helper function to sanitize input
-if (!function_exists('sanitize_input')) {
-    function sanitize_input($conn, $input) {
-        return htmlspecialchars(strip_tags(trim($input)));
-    }
-}
-
-// Handle product operations
-$message = "";
-$error = "";
-
-// Handle delete product
-if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
-    $product_id = $_GET['delete'];
-    
-    // Verify this product belongs to the seller
-    $stmt = $conn->prepare("SELECT product_id FROM tbl_product WHERE product_id = ? AND seller_id = ? AND deleted = 0");
-    $stmt->bind_param("ii", $product_id, $actual_seller_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        // Soft delete the product
-        $stmt = $conn->prepare("UPDATE tbl_product SET deleted = 1 WHERE product_id = ?");
-        $stmt->bind_param("i", $product_id);
-        
-        if ($stmt->execute()) {
-            $message = "Product deleted successfully";
-        } else {
-            $error = "Failed to delete product: " . $conn->error;
-        }
-    } else {
-        $error = "You don't have permission to delete this product";
-    }
-}
-
-// Get single product for editing
-if (isset($_GET['edit']) && is_numeric($_GET['edit'])) {
-    $product_id = $_GET['edit'];
-    
-    // Fetch product details with category, subcategory, and brand information
-    $stmt = $conn->prepare("
-        SELECT p.*, c.name as category_name, s.name as subcategory_name, b.name as brand_name 
-        FROM tbl_product p
-        LEFT JOIN tbl_categories c ON p.category_id = c.category_id
-        LEFT JOIN tbl_subcategories s ON p.subcategory_id = s.subcategory_id
-        LEFT JOIN tbl_brands b ON p.brand_id = b.brand_id
-        WHERE p.product_id = ? AND p.seller_id = ? AND p.deleted = 0
-    ");
-    $stmt->bind_param("ii", $product_id, $actual_seller_id);
-    $stmt->execute();
-    $result = $stmt->get_result();
-    
-    if ($result->num_rows > 0) {
-        $product = $result->fetch_assoc();
-        // Return JSON response
-        header('Content-Type: application/json');
-        echo json_encode($product);
-        exit();
-    } else {
-        // Return error JSON
-        header('Content-Type: application/json');
-        echo json_encode(['error' => 'Product not found or access denied']);
-        exit();
-    }
-}
-
-// 1. First, fetch categories
-$categoryQuery = $conn->prepare("
-    SELECT category_id, name 
-    FROM tbl_categories 
-    WHERE deleted = 0 
-    ORDER BY name ASC
-");
-$categoryQuery->execute();
-$categories = $categoryQuery->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// 2. Fetch subcategories from tbl_subcategories
-$subcategoryQuery = $conn->prepare("
-    SELECT subcategory_id, name, category_id 
-    FROM tbl_subcategories 
-    WHERE deleted = 0 
-    ORDER BY name ASC
-");
-$subcategoryQuery->execute();
-$subcategories = $subcategoryQuery->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// 3. Fetch all brands
-$brandQuery = $conn->prepare("
-    SELECT brand_id, name as brand_name
-    FROM tbl_brands
-    WHERE deleted = 0
-    ORDER BY name ASC
-");
-$brandQuery->execute();
-$brands = $brandQuery->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// 4. Fetch all products with their related information
-$productQuery = $conn->prepare("
-    SELECT 
-        p.*,
-        c.name as category_name,
-        s.name as subcategory_name,
-        b.name as brand_name,
-        COALESCE(p.image_path, 'default.jpg') as product_image
-    FROM tbl_product p
-    LEFT JOIN tbl_categories c ON p.category_id = c.category_id
-    LEFT JOIN tbl_subcategories s ON p.subcategory_id = s.subcategory_id
-    LEFT JOIN tbl_brands b ON p.brand_id = b.brand_id
-    WHERE p.seller_id = ? AND p.deleted = 0
-    ORDER BY p.created_at DESC
-");
-$productQuery->bind_param("i", $actual_seller_id);
-$productQuery->execute();
-$products = $productQuery->get_result()->fetch_all(MYSQLI_ASSOC);
-
-// Update the form submission handling
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_product') {
-    // Sanitize inputs
-    $name = sanitize_input($conn, $_POST['name']);
-    $description = sanitize_input($conn, $_POST['description']);
-    $price = floatval($_POST['price']);
-    $stock = intval($_POST['stock']);
-    $category_id = intval($_POST['category_id']);
-    $subcategory_id = intval($_POST['subcategory_id']);
-    $brand_id = intval($_POST['brand_id']);
-    
-    // Validation
-    if (empty($name) || empty($description) || $price <= 0 || $stock < 0) {
-        $error = "Please fill all required fields correctly";
-    } else {
-        if (isset($_POST['product_id']) && !empty($_POST['product_id'])) {
-            // Update existing product
-            $product_id = intval($_POST['product_id']);
-            
-            // Verify this product belongs to the seller
-            $stmt = $conn->prepare("SELECT product_id FROM tbl_product WHERE product_id = ? AND seller_id = ? AND deleted = 0");
-            $stmt->bind_param("ii", $product_id, $actual_seller_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows > 0) {
-                // Base update query
-                $update_query = "UPDATE tbl_product SET 
-                    name = ?, 
-                    description = ?, 
-                    price = ?, 
-                    Stock_quantity = ?, 
-                    category_id = ?,
-                    subcategory_id = ?,
-                    brand_id = ?";
-                $params = [$name, $description, $price, $stock, $category_id, $subcategory_id, $brand_id];
-                $types = "ssdiiii";
-                
-                // Handle image upload if new image is provided
-                if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] == 0) {
-                    $image_path = handleImageUpload($_FILES['product_image']);
-                    if ($image_path) {
-                        $update_query .= ", image_path = ?";
-                        $params[] = $image_path;
-                        $types .= "s";
-                    }
-                }
-                
-                // Add WHERE clause and product_id parameter
-                $update_query .= " WHERE product_id = ?";
-                $params[] = $product_id;
-                $types .= "i";
-                
-                // Prepare and execute the statement
-                $stmt = $conn->prepare($update_query);
-                $stmt->bind_param($types, ...$params);
-                
-                if ($stmt->execute()) {
-                    $message = "Product updated successfully";
-                    header("Location: products.php");
-                    exit();
-                } else {
-                    $error = "Failed to update product: " . $conn->error;
-                }
-            } else {
-                $error = "You don't have permission to edit this product";
-            }
-        } else {
-            // Add new product
-            // Image is required for new products
-            if (!isset($_FILES['product_image']) || $_FILES['product_image']['error'] != 0) {
-                $error = "Please upload a product image";
-            } else {
-                $image_path = handleImageUpload($_FILES['product_image']);
-                if ($image_path) {
-                    $stmt = $conn->prepare("INSERT INTO tbl_product (seller_id, name, description, price, Stock_quantity, category_id, subcategory_id, brand_id, image_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("issdiiiss", $actual_seller_id, $name, $description, $price, $stock, $category_id, $subcategory_id, $brand_id, $image_path);
-                    
-                    if ($stmt->execute()) {
-                        $message = "Product added successfully";
-                        header("Location: products.php");
-                        exit();
-                    } else {
-                        $error = "Failed to add product: " . $conn->error;
-                    }
-                } else {
-                    $error = "Failed to upload image";
-                }
-            }
+// Get current category name if category is selected
+$current_category_name = '';
+if ($category_id) {
+    foreach ($categories as $category) {
+        if ($category['category_id'] == $category_id) {
+            $current_category_name = $category['name'];
+            break;
         }
     }
 }
-
-// Helper function to handle image upload
-function handleImageUpload($file) {
-    $allowed_types = ['image/jpeg', 'image/png', 'image/gif'];
-    $max_size = 5 * 1024 * 1024; // 5MB
-    
-    if (!in_array($file['type'], $allowed_types)) {
-        return false;
-    }
-    
-    if ($file['size'] > $max_size) {
-        return false;
-    }
-    
-    $upload_dir = 'uploads/products/';
-    if (!file_exists($upload_dir)) {
-        mkdir($upload_dir, 0777, true);
-    }
-    
-    $filename = time() . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '', $file['name']);
-    $target_path = $upload_dir . $filename;
-    
-    if (move_uploaded_file($file['tmp_name'], $target_path)) {
-        return $target_path;
-    }
-    
-    return false;
-}
-
-// Function to fetch products by category
-function getProductsByCategory($conn, $category_id = null) {
-    $query = "
-        SELECT p.*, c.name as category_name, b.name as brand_name 
-        FROM tbl_product p
-        LEFT JOIN tbl_categories c ON p.category_id = c.category_id
-        LEFT JOIN tbl_brands b ON p.brand_id = b.brand_id
-        WHERE p.deleted = 0 ";
-    
-    if ($category_id) {
-        $query .= "AND p.category_id = ? ";
-    }
-    
-    $query .= "ORDER BY p.created_at DESC";
-    
-    $stmt = $conn->prepare($query);
-    
-    if ($category_id) {
-        $stmt->bind_param("i", $category_id);
-    }
-    
-    $stmt->execute();
-    return $stmt->get_result()->fetch_all(MYSQLI_ASSOC);
-}
-
-// Fetch all categories
-$categories_query = "SELECT * FROM tbl_categories WHERE deleted = 0";
-$categories = $conn->query($categories_query)->fetch_all(MYSQLI_ASSOC);
-
-// Get products for selected category or all products
-$selected_category = isset($_GET['category']) ? intval($_GET['category']) : null;
-$products = getProductsByCategory($conn, $selected_category);
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-<<<<<<< HEAD
-=======
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     <title>Perfume Paradise - Products</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
@@ -370,509 +110,991 @@ $products = getProductsByCategory($conn, $selected_category);
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Arial', sans-serif;
+            font-family: 'Roboto', sans-serif;
         }
 
         body {
-<<<<<<< HEAD
-            background-color: #f8f9fa;
-            color: #333;
-        }
-
-        nav {
-            background-color: #1a1a1a;
-            padding: 1rem 2rem;
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-        }
-
-        .logo {
-            color: #e8d1c5;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-decoration: none;
-=======
-            background-color: #000;
-            color: #fff;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+            background-color: #f1f3f6;
+            color: #212121;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
-<<<<<<< HEAD
-            padding: 80px 20px 20px;
-=======
-            padding: 20px;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+            padding: 60px 10px 20px;
+        }
+
+        .main-content {
+            width: 100%;
+        }
+
+        .categories-nav {
+            background: white;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        .categories-list {
+            display: flex;
+            list-style: none;
+            overflow-x: auto;
+            gap: 15px;
+            padding-bottom: 5px;
+        }
+
+        .category-link {
+            color: #212121;
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .category-link:hover,
+        .category-link.active {
+            background: #2874f0;
+            color: white;
         }
 
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-<<<<<<< HEAD
-            gap: 2rem;
-            padding: 2rem 0;
+            gap: 20px;
+            padding: 20px;
         }
 
         .product-card {
             background: white;
             border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            transition: transform 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            height: 100%;
             position: relative;
-=======
-            gap: 30px;
-            padding: 20px;
         }
 
-        .product-card {
-            background: #111;
-            border-radius: 10px;
-            overflow: hidden;
-            transition: transform 0.3s ease;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+        .product-link {
+            text-decoration: none;
+            color: inherit;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        .product-card:hover {
-            transform: translateY(-5px);
-        }
-
-<<<<<<< HEAD
-        .new-label {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            background: #ff69b4;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.8rem;
-        }
-
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         .product-image {
-            height: 250px;
+            width: 100%;
+            aspect-ratio: 1;
             overflow: hidden;
+            position: relative;
         }
 
         .product-image img {
             width: 100%;
             height: 100%;
             object-fit: cover;
-<<<<<<< HEAD
-        }
-
-        .product-details {
-            padding: 1.5rem;
-            text-align: center;
-        }
-
-        .product-title {
-            font-size: 1.2rem;
-            color: #333;
-            margin-bottom: 0.5rem;
-        }
-
-        .product-brand {
-            color: #666;
-            font-size: 0.9rem;
-            margin-bottom: 1rem;
-        }
-
-        .product-price {
-            font-size: 1.25rem;
-            color: #1a1a1a;
-            font-weight: bold;
-            margin-bottom: 1rem;
-        }
-
-        .add-to-cart {
-            background: #1a1a1a;
-            color: white;
-            border: none;
-            padding: 0.8rem 1.5rem;
-            border-radius: 4px;
-            cursor: pointer;
-            width: 100%;
-            transition: background-color 0.3s ease;
-        }
-
-        .add-to-cart:hover {
-            background: #333;
-        }
-
-        .categories-nav {
-            background: white;
-            padding: 1rem 0;
-            margin-bottom: 2rem;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-=======
             transition: transform 0.3s ease;
         }
 
         .product-details {
-            padding: 20px;
+            padding: 15px;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
         .product-title {
-            color: #e8a87c;
-            font-size: 1.2rem;
-            margin-bottom: 10px;
+            font-size: 16px;
+            margin: 0 0 8px;
+            color: #212121;
+            font-weight: 500;
         }
 
         .product-brand {
-            color: #888;
-            font-size: 0.9rem;
-            margin-bottom: 10px;
-        }
-
-        .product-description {
-            color: #ddd;
-            font-size: 0.9rem;
-            margin-bottom: 15px;
-            line-height: 1.4;
+            font-size: 14px;
+            color: #666;
+            margin: 0 0 8px;
         }
 
         .product-price {
-            color: #e8a87c;
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin-bottom: 15px;
+            font-size: 18px;
+            color: #212121;
+            font-weight: 600;
+            margin: 0 0 8px;
         }
 
-        .add-to-cart {
-            background: #e8a87c;
-            color: #000;
-            border: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            width: 100%;
-            font-weight: bold;
-        }
-
-        .add-to-cart:hover {
-            background: #d69668;
-            transform: scale(1.02);
-        }
-
-        .categories-nav {
-            background: #111;
-            padding: 15px 0;
-            margin-bottom: 30px;
-            border-radius: 10px;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-        }
-
-        .categories-list {
+        .stock-warning {
+            color: #ff6b6b;
+            font-size: 12px;
             display: flex;
-<<<<<<< HEAD
-            list-style: none;
-            overflow-x: auto;
-            padding: 0 1rem;
-            gap: 1rem;
+            align-items: center;
+            gap: 5px;
+            margin-top: auto;
         }
 
-        .category-link {
-            color: #333;
-            text-decoration: none;
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-=======
+        .add-to-cart-form {
+            padding: 15px;
+            margin-top: auto;
+        }
+
+        .add-to-cart-btn, 
+        .out-of-stock-btn {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
             justify-content: center;
-            gap: 20px;
-            list-style: none;
-            flex-wrap: wrap;
+            gap: 8px;
         }
 
-        .category-link {
-            color: #fff;
-            text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 5px;
-            transition: all 0.3s ease;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-        }
-
-        .category-link:hover,
-        .category-link.active {
-<<<<<<< HEAD
-            background: #1a1a1a;
+        .add-to-cart-btn {
+            background: #ff9f00;
             color: white;
-=======
-            background: #e8a87c;
-            color: #000;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+        }
+
+        .add-to-cart-btn:hover {
+            background: #ff9100;
+        }
+
+        .out-of-stock-btn {
+            background: #e0e0e0;
+            color: #666;
+            cursor: not-allowed;
         }
 
         @media (max-width: 768px) {
             .products-grid {
                 grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-<<<<<<< HEAD
+                gap: 15px;
+                padding: 15px;
             }
-        }
-    </style>
-</head>
-<body>
-    <nav>
-        <a href="index.php" class="logo">Perfume Paradise</a>
-    </nav>
 
-    <div class="container">
-        <div class="categories-nav">
-            <ul class="categories-list">
-                <li><a href="productslist.php" class="category-link active">All Perfumes</a></li>
-                <?php foreach ($categories as $category): ?>
-                    <li>
-                        <a href="?category=<?php echo $category['category_id']; ?>" 
-                           class="category-link">
-=======
-                gap: 20px;
+            .product-title {
+                font-size: 14px;
+            }
+
+            .product-brand {
+                font-size: 12px;
+            }
+
+            .product-price {
+                font-size: 16px;
             }
         }
 
-        /* Add navigation styles */
-        nav {
-            background-color: #000;
-            padding: 1rem 2rem;
+        @media (max-width: 480px) {
+            .products-grid {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 10px;
+                padding: 10px;
+            }
+        }
+
+        .stock-warning {
+            color: #B12704;
+            font-size: 0.9em;
+            margin-top: 5px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stock-warning i {
+            color: #B12704;
+        }
+
+        .out-of-stock-btn {
+            width: 100%;
+            padding: 12px;
+            background: #dddddd;
+            color: #666666;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: not-allowed;
+            margin-bottom: 8px;
+        }
+
+        .notify-btn {
+            width: 100%;
+            padding: 10px;
+            background: #f8f9fa;
+            color: #2874f0;
+            border: 1px solid #2874f0;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .notify-btn:hover {
+            background: #e8f0fe;
+        }
+
+        .add-to-cart-btn:disabled {
+            background: #dddddd;
+            cursor: not-allowed;
+        }
+
+        .no-products {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 300px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+        }
+
+        .restricted-btn {
+            width: 100%;
+            padding: 12px;
+            background: #f0f0f0;
+            color: #666;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: background 0.2s;
+        }
+
+        .restricted-btn:hover {
+            background: #e0e0e0;
+        }
+
+        .login-message {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+        }
+
+        .login-message-content {
+            background: white;
+            padding: 20px 30px;
+            border-radius: 8px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .login-message-content p {
+            margin-bottom: 15px;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .login-message-content button {
+            padding: 8px 20px;
+            background: #2874f0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .login-message-content button:hover {
+            background: #1c5ac7;
+        }
+
+        .main-content-wrapper {
+            display: flex;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 10px;
+        }
+
+        .filters-sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+            height: fit-content;
+            position: sticky;
+            top: 100px;
+        }
+
+        .filter-section {
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .filter-section:last-child {
+            border-bottom: none;
+        }
+
+        .filter-section h3 {
+            font-size: 18px;
+            color: #212121;
+            margin-bottom: 10px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            position: fixed;
-            width: 100%;
-            z-index: 1000;
-            border-bottom: 1px solid #222;
         }
 
-        .logo {
-            color: #e8a87c;
-            font-size: 1.5rem;
-            font-weight: bold;
-            text-decoration: none;
+        .filter-section h4 {
+            font-size: 14px;
+            color: #212121;
+            margin-bottom: 10px;
         }
 
-        .nav-links {
+        .clear-filters {
+            background: none;
+            border: none;
+            color: #2874f0;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .price-inputs {
             display: flex;
-            gap: 2rem;
-            position: relative;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 10px;
         }
 
-        .nav-links a {
-            color: white;
-            text-decoration: none;
-            font-size: 1rem;
-        }
-
-        .dropdown {
-            position: relative;
-            display: inline-block;
-        }
-
-        .dropdown-content {
-            display: none;
-            position: absolute;
-            background-color: #111;
-            min-width: 200px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            z-index: 1001;
+        .price-inputs input {
+            width: 100px;
+            padding: 8px;
+            border: 1px solid #ddd;
             border-radius: 4px;
-            margin-top: 0.5rem;
         }
 
-        .dropdown:hover .dropdown-content {
-            display: block;
-        }
-
-        .dropdown-content a {
+        .apply-filter {
+            background: #2874f0;
             color: white;
-            padding: 12px 16px;
-            text-decoration: none;
-            display: block;
-            transition: background-color 0.3s;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
         }
 
-        .dropdown-content a:hover {
-            background-color: #222;
-            color: #e8a87c;
+        .filter-search {
+            margin-bottom: 10px;
         }
 
-        /* Adjust main content padding for fixed nav */
-        .container {
-            padding-top: 80px;
+        .filter-search input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
         }
 
-        /* Add these styles for user menu */
-        .user-menu {
+        .filter-options {
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .filter-option {
             display: flex;
             align-items: center;
-            gap: 1rem;
+            padding: 8px 0;
+            cursor: pointer;
+            font-size: 14px;
+            color: #212121;
+            position: relative;
         }
 
-        .user-menu .fas {
-            margin-right: 5px;
+        .filter-option:hover {
+            background-color: #f5f5f5;
         }
 
-        .dropdown-content {
-            right: 0; /* Align dropdown to the right for user menu */
+        .filter-option input[type="checkbox"],
+        .filter-option input[type="radio"] {
+            margin-right: 10px;
+        }
+
+        .checkmark {
+            position: relative;
+            display: inline-block;
+            width: 18px;
+            height: 18px;
+            margin-right: 10px;
+            border: 2px solid #2874f0;
+            border-radius: 2px;
+        }
+
+        .filter-option input:checked + .checkmark:after {
+            content: '';
+            position: absolute;
+            left: 5px;
+            top: 2px;
+            width: 5px;
+            height: 10px;
+            border: solid #2874f0;
+            border-width: 0 2px 2px 0;
+            transform: rotate(45deg);
+        }
+
+        .products-grid {
+            flex: 1;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 992px) {
+            .main-content-wrapper {
+                flex-direction: column;
+            }
+
+            .filters-sidebar {
+                width: 100%;
+                position: static;
+            }
+        }
+
+        /* Loading overlay */
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            display: none;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #2874f0;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .subcategory-options {
+            margin-left: 20px;
+            display: none;
+        }
+
+        .subcategory-options.active {
+            display: block;
+        }
+
+        .filter-option.subcategory {
+            font-size: 13px;
+            padding: 6px 0;
+        }
+
+        .category-arrow {
+            float: right;
+            transition: transform 0.3s;
+        }
+
+        .category-arrow.active {
+            transform: rotate(180deg);
+        }
+
+        .view-only-btn {
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .view-only-btn:hover {
+            background-color: #5a6268;
+        }
+
+        .add-to-cart-btn {
+            width: 100%;
+            padding: 8px 16px;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
-    <!-- Modified navigation bar to show login/register or user menu -->
-    <nav>
-        <a href="index.php" class="logo">Perfume Paradise</a>
-        <div class="nav-links">
-            <a href="index.php">Home</a>
-            <div class="dropdown">
-                <a href="#" class="dropbtn">Categories</a>
-                <div class="dropdown-content">
-                    <?php foreach ($categories as $category): ?>
-                        <a href="products.php?category=<?php echo $category['category_id']; ?>">
-                            <?php echo htmlspecialchars($category['name']); ?>
-                        </a>
-                    <?php endforeach; ?>
-                </div>
-            </div>
-            <a href="#">Brands</a>
-            <a href="#">Our Story</a>
-            <?php if ($is_logged_in): ?>
-                <div class="dropdown">
-                    <a href="#" class="dropbtn">
-                        <i class="fas fa-user"></i> 
-                        <?php echo htmlspecialchars($_SESSION['username']); ?>
-                    </a>
-                    <div class="dropdown-content">
-                        <a href="profile.php">Profile</a>
-                        <a href="orders.php">Orders</a>
-                        <a href="logout.php">Logout</a>
-                    </div>
-                </div>
-            <?php else: ?>
-                <a href="login.php">Login</a>
-                <a href="register.php">Register</a>
-            <?php endif; ?>
-        </div>
-    </nav>
+    <?php include 'header.php'; ?>
 
     <div class="container">
-        <nav class="categories-nav">
-            <ul class="categories-list">
-                <li>
-                    <a href="products.php" class="category-link <?php echo !$selected_category ? 'active' : ''; ?>">
-                        All Products
-                    </a>
-                </li>
-                <?php foreach ($categories as $category): ?>
+        <main class="main-content">
+            <div class="categories-nav">
+                <ul class="categories-list">
                     <li>
-                        <a href="products.php?category=<?php echo $category['category_id']; ?>" 
-                           class="category-link <?php echo $selected_category == $category['category_id'] ? 'active' : ''; ?>">
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-                            <?php echo htmlspecialchars($category['name']); ?>
+                        <a href="productslist.php" 
+                           class="category-link <?php echo !$category_id ? 'active' : ''; ?>">
+                            All Perfumes
                         </a>
                     </li>
-                <?php endforeach; ?>
-            </ul>
-<<<<<<< HEAD
-        </div>
+                    <?php foreach ($categories as $category): ?>
+                        <li>
+                            <a href="?category=<?php echo $category['category_id']; ?>" 
+                               class="category-link <?php echo $category_id == $category['category_id'] ? 'active' : ''; ?>">
+                                <?php echo htmlspecialchars($category['name']); ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
 
-        <div class="products-grid">
-            <?php foreach ($products as $product): ?>
-                <div class="product-card">
-                    <div class="new-label">NEW</div>
-                    <div class="product-image">
-                        <img src="<?php echo htmlspecialchars($product['image_path']); ?>" 
-                             alt="<?php echo htmlspecialchars($product['name']); ?>">
+            <div class="main-content-wrapper">
+                <aside class="filters-sidebar">
+                    <div class="filter-section">
+                        <h3>Filters</h3>
+                        <button id="clearFilters" class="clear-filters">Clear All</button>
                     </div>
-                    <div class="product-details">
-                        <h3 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h3>
-                        <p class="product-brand"><?php echo htmlspecialchars($product['brand_name']); ?></p>
-                        <p class="product-price">₹<?php echo number_format($product['price'], 2); ?></p>
-                        <button class="add-to-cart" data-product-id="<?php echo $product['product_id']; ?>">
-                            Add to Cart
-                        </button>
-                    </div>
-                </div>
-            <?php endforeach; ?>
-=======
-        </nav>
 
-        <div class="products-grid">
-            <?php if (empty($products)): ?>
-                <div style="text-align: center; grid-column: 1/-1; padding: 20px;">
-                    <p>No products found in this category.</p>
-                </div>
-            <?php else: ?>
-                <?php foreach ($products as $product): ?>
-                    <div class="product-card">
-                        <div class="product-image">
-                            <img src="<?php echo htmlspecialchars($product['image_path']); ?>" 
-                                 alt="<?php echo htmlspecialchars($product['name']); ?>">
-                        </div>
-                        <div class="product-details">
-                            <h3 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h3>
-                            <p class="product-brand"><?php echo htmlspecialchars($product['brand_name']); ?></p>
-                            <p class="product-description"><?php echo htmlspecialchars($product['description']); ?></p>
-                            <p class="product-price">₹<?php echo number_format($product['price'], 2); ?></p>
-                            <button class="add-to-cart" data-product-id="<?php echo $product['product_id']; ?>">
-                                Add to Cart
-                            </button>
+                    <!-- Add Categories Filter -->
+                    <div class="filter-section">
+                        <h4>Categories</h4>
+                        <div class="filter-options" id="categoryFilters">
+                            <?php foreach ($categories as $category): ?>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="category" value="<?php echo $category['category_id']; ?>"
+                                        <?php echo (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'checked' : ''; ?>>
+                                    <span class="checkmark"></span>
+                                    <?php echo htmlspecialchars($category['name']); ?>
+                                </label>
+                                <!-- Subcategories for this category -->
+                                <div class="subcategory-options" data-parent="<?php echo $category['category_id']; ?>">
+                                    <?php 
+                                    // Fetch subcategories for this category
+                                    $subQuery = "SELECT * FROM tbl_subcategories WHERE category_id = ? AND deleted = 0 ORDER BY name";
+                                    $stmt = $conn->prepare($subQuery);
+                                    $stmt->bind_param("i", $category['category_id']);
+                                    $stmt->execute();
+                                    $subResult = $stmt->get_result();
+                                    while ($sub = $subResult->fetch_assoc()): 
+                                    ?>
+                                        <label class="filter-option subcategory">
+                                            <input type="checkbox" name="subcategory" value="<?php echo $sub['subcategory_id']; ?>">
+                                            <span class="checkmark"></span>
+                                            <?php echo htmlspecialchars($sub['name']); ?>
+                                        </label>
+                                    <?php endwhile; ?>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     </div>
-                <?php endforeach; ?>
-            <?php endif; ?>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+
+                    <div class="filter-section">
+                        <h4>Price Range</h4>
+                        <div class="price-inputs">
+                            <input type="number" id="minPrice" placeholder="Min" min="0">
+                            <span>to</span>
+                            <input type="number" id="maxPrice" placeholder="Max" min="0">
+                        </div>
+                        <button id="applyPriceFilter" class="apply-filter">Apply</button>
+                    </div>
+
+                    <div class="filter-section">
+                        <h4>Brand</h4>
+                        <div class="filter-search">
+                            <input type="text" placeholder="Search Brands" id="brandSearch">
+                        </div>
+                        <div class="filter-options" id="brandFilters">
+                            <?php foreach ($brands as $brand): ?>
+                            <label class="filter-option">
+                                <input type="checkbox" name="brand" value="<?php echo $brand['brand_id']; ?>">
+                                <span class="checkmark"></span>
+                                <?php echo htmlspecialchars($brand['name']); ?>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h4>Size</h4>
+                        <div class="filter-options">
+                            <?php foreach ($sizes as $size): ?>
+                                <label class="filter-option">
+                                    <input type="checkbox" name="size" value="<?php echo htmlspecialchars($size); ?>">
+                                    <span class="checkmark"></span>
+                                    <?php echo htmlspecialchars($size); ?>
+                                </label>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+
+                    <div class="filter-section">
+                        <h4>Sort By</h4>
+                        <div class="sort-options">
+                            <label class="filter-option">
+                                <input type="radio" name="sort" value="price_asc">
+                                <span class="checkmark"></span>
+                                Price: Low to High
+                            </label>
+                            <label class="filter-option">
+                                <input type="radio" name="sort" value="price_desc">
+                                <span class="checkmark"></span>
+                                Price: High to Low
+                            </label>
+                            <label class="filter-option">
+                                <input type="radio" name="sort" value="newest">
+                                <span class="checkmark"></span>
+                                Newest First
+                            </label>
+                        </div>
+                    </div>
+                </aside>
+
+                <div class="products-grid">
+                    <?php if (empty($products)): ?>
+                        <div class="no-products" style="grid-column: 1 / -1; text-align: center; padding: 50px 0;">
+                            <i class="fas fa-box-open" style="font-size: 48px; color: #ccc; display: block; margin-bottom: 20px;"></i>
+                            <p style="font-size: 18px; color: #666;">No products found<?php echo $current_category_name ? ' in ' . $current_category_name : ''; ?></p>
+                        </div>
+                    <?php else: ?>
+                        <?php foreach ($products as $product): ?>
+                            <div class="product-card">
+                                <a href="product_details.php?id=<?php echo $product['product_id']; ?>" class="product-link">
+                                    <div class="product-image">
+                                        <img src="<?php echo htmlspecialchars($product['image_path']); ?>" 
+                                             alt="<?php echo htmlspecialchars($product['name']); ?>">
+                                    </div>
+                                    <div class="product-details">
+                                        <h3 class="product-title"><?php echo htmlspecialchars($product['name']); ?></h3>
+                                        <p class="product-brand"><?php echo htmlspecialchars($product['brand_name']); ?></p>
+                                        <p class="product-price">₹<?php echo number_format($product['price'], 2); ?></p>
+                                        
+                                        <?php if ($product['Stock_quantity'] <= 5 && $product['Stock_quantity'] > 0): ?>
+                                            <p class="stock-warning">
+                                                <i class="fas fa-exclamation-circle"></i>
+                                                Only <?php echo $product['Stock_quantity']; ?> left in stock
+                                            </p>
+                                        <?php endif; ?>
+                                    </div>
+                                </a>
+
+                                <?php if (isset($_SESSION['role']) && ($_SESSION['role'] === 'seller' || $_SESSION['role'] === 'admin')): ?>
+                                    <button class="add-to-cart-btn" onclick="showLoginMessage(); return false;">
+                                        <i class="fas fa-shopping-cart"></i> Add to Cart
+                                    </button>
+                                <?php elseif (isset($_SESSION['logged_in'])): ?>
+                                    <form action="add_to_cart.php" method="POST" class="add-to-cart-form">
+                                        <input type="hidden" name="product_id" value="<?php echo $product['product_id']; ?>">
+                                        <input type="hidden" name="add_to_cart" value="1">
+                                        <button type="submit" class="add-to-cart-btn">
+                                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                                        </button>
+                                    </form>
+                                <?php else: ?>
+                                    <button class="add-to-cart-btn" onclick="showLoginMessage(); return false;">
+                                        <i class="fas fa-shopping-cart"></i> Add to Cart
+                                    </button>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div id="loginMessage" class="login-message" style="display: none;">
+        <div class="login-message-content">
+            <p>Please login as a user to buy products.</p>
+            <button onclick="closeLoginMessage()">OK</button>
         </div>
     </div>
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const addToCartButtons = document.querySelectorAll('.add-to-cart');
-        
-        addToCartButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const productId = this.dataset.productId;
-                
-                <?php if ($is_logged_in): ?>
-<<<<<<< HEAD
-                    this.innerHTML = '✓ Added to Cart';
-                    this.style.background = '#28a745';
-                    
-                    setTimeout(() => {
-                        this.innerHTML = 'Add to Cart';
-                        this.style.background = '#1a1a1a';
-                    }, 2000);
-                <?php else: ?>
-                    window.location.href = 'login.php?redirect=productslist.php';
-=======
-                // Add to cart functionality for logged-in users
-                // Add your cart functionality here
-                console.log('Adding product to cart:', productId);
-                
-                // Visual feedback
-                this.innerHTML = '✓ Added to Cart';
-                this.style.background = '#28a745';
-                
-                setTimeout(() => {
-                    this.innerHTML = 'Add to Cart';
-                    this.style.background = '#e8a87c';
-                }, 2000);
-                <?php else: ?>
-                // Redirect to login for non-logged-in users
-                window.location.href = 'login.php?redirect=products.php';
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-                <?php endif; ?>
+        // Add loading overlay to body if not exists
+        if (!document.querySelector('.loading-overlay')) {
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.className = 'loading-overlay';
+            loadingOverlay.innerHTML = '<div class="loading-spinner"></div>';
+            document.body.appendChild(loadingOverlay);
+        }
+
+        // Get all filter elements
+        const filterInputs = document.querySelectorAll('.filter-option input');
+        const priceFilterBtn = document.getElementById('applyPriceFilter');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+        const brandSearch = document.getElementById('brandSearch');
+        const minPriceInput = document.getElementById('minPrice');
+        const maxPriceInput = document.getElementById('maxPrice');
+
+        // Add category toggle functionality
+        document.querySelectorAll('.filter-option input[name="category"]').forEach(categoryInput => {
+            const parentLabel = categoryInput.closest('.filter-option');
+            const arrow = document.createElement('span');
+            arrow.innerHTML = '▼';
+            arrow.className = 'category-arrow';
+            parentLabel.appendChild(arrow);
+
+            parentLabel.addEventListener('click', (e) => {
+                if (e.target !== categoryInput) { // Don't toggle if clicking the checkbox
+                    const subcategoryDiv = parentLabel.nextElementSibling;
+                    subcategoryDiv.classList.toggle('active');
+                    arrow.classList.toggle('active');
+                }
             });
         });
+
+        // Function to update products based on filters
+        function updateProducts() {
+            const loadingOverlay = document.querySelector('.loading-overlay');
+            loadingOverlay.style.display = 'flex';
+
+            // Collect all active filters
+            const filters = new URLSearchParams();
+            
+            // Add selected categories
+            const selectedCategories = Array.from(document.querySelectorAll('input[name="category"]:checked'))
+                .map(input => input.value);
+            if (selectedCategories.length) filters.set('categories', selectedCategories.join(','));
+
+            // Add selected subcategories
+            const selectedSubcategories = Array.from(document.querySelectorAll('input[name="subcategory"]:checked'))
+                .map(input => input.value);
+            if (selectedSubcategories.length) filters.set('subcategories', selectedSubcategories.join(','));
+
+            // Add price range
+            const minPrice = minPriceInput.value;
+            const maxPrice = maxPriceInput.value;
+            if (minPrice) filters.set('min_price', minPrice);
+            if (maxPrice) filters.set('max_price', maxPrice);
+
+            // Add selected brands
+            const selectedBrands = Array.from(document.querySelectorAll('input[name="brand"]:checked'))
+                .map(input => input.value);
+            if (selectedBrands.length) filters.set('brands', selectedBrands.join(','));
+
+            // Add selected sizes
+            const selectedSizes = Array.from(document.querySelectorAll('input[name="size"]:checked'))
+                .map(input => input.value);
+            if (selectedSizes.length) filters.set('sizes', selectedSizes.join(','));
+
+            // Add sort option
+            const sortOption = document.querySelector('input[name="sort"]:checked');
+            if (sortOption) filters.set('sort', sortOption.value);
+
+            // Fetch filtered products
+            fetch(`get_filtered_products.php?${filters.toString()}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        updateProductsGrid(data.products);
+                    } else {
+                        console.error('Error:', data.error);
+                        alert('Error filtering products. Please try again.');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error filtering products. Please try again.');
+                })
+                .finally(() => {
+                    loadingOverlay.style.display = 'none';
+                });
+        }
+
+        // Function to update the products grid
+        function updateProductsGrid(products) {
+            const productsGrid = document.querySelector('.products-grid');
+            
+            if (!products || products.length === 0) {
+                productsGrid.innerHTML = `
+                    <div class="no-products" style="
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        text-align: center;
+                        width: 100%;
+                        padding: 20px;">
+                        <i class="fas fa-box-open" style="
+                            font-size: 64px;
+                            color: #ccc;
+                            display: block;
+                            margin-bottom: 20px;"></i>
+                        <p style="
+                            font-size: 18px;
+                            color: #666;
+                            margin: 0;">No products found matching your filters</p>
+                    </div>
+                `;
+                
+                // Make sure the products grid has relative positioning
+                productsGrid.style.position = 'relative';
+                productsGrid.style.minHeight = '400px';
+                return;
+            }
+
+            // Reset the styles when products are found
+            productsGrid.style.position = '';
+            productsGrid.style.minHeight = '';
+
+            productsGrid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <a href="product_details.php?id=${product.product_id}" class="product-link">
+                        <div class="product-image">
+                            <img src="${product.image_path}" alt="${product.name}">
+                        </div>
+                        <div class="product-details">
+                            <h3 class="product-title">${product.name}</h3>
+                            <p class="product-brand">${product.brand_name}</p>
+                            <p class="product-price">₹${parseFloat(product.price).toFixed(2)}</p>
+                            ${product.Stock_quantity <= 5 && product.Stock_quantity > 0 ? `
+                                <p class="stock-warning">
+                                    <i class="fas fa-exclamation-circle"></i>
+                                    Only ${product.Stock_quantity} left in stock
+                                </p>
+                            ` : ''}
+                        </div>
+                    </a>
+                    ${product.Stock_quantity > 0 ? `
+                        <?php if (isset($_SESSION['role']) && ($_SESSION['role'] === 'seller' || $_SESSION['role'] === 'admin')): ?>
+                            <button class="add-to-cart-btn" onclick="showLoginMessage(); return false;">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
+                        <?php elseif (isset($_SESSION['logged_in'])): ?>
+                            <form action="add_to_cart.php" method="POST" class="add-to-cart-form">
+                                <input type="hidden" name="product_id" value="${product.product_id}">
+                                <input type="hidden" name="add_to_cart" value="1">
+                                <button type="submit" class="add-to-cart-btn">
+                                    <i class="fas fa-shopping-cart"></i> Add to Cart
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <button class="add-to-cart-btn" onclick="window.location.href='login.php'">
+                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                            </button>
+                        <?php endif; ?>
+                    ` : `
+                        <button class="out-of-stock-btn" disabled>
+                            <i class="fas fa-times-circle"></i> Out of Stock
+                        </button>
+                    `}
+                </div>
+            `).join('');
+
+            // Reattach cart event listeners
+            attachCartEventListeners();
+        }
+
+        // Event listeners for filters
+        filterInputs.forEach(input => {
+            input.addEventListener('change', updateProducts);
+        });
+
+        priceFilterBtn.addEventListener('click', updateProducts);
+
+        clearFiltersBtn.addEventListener('click', () => {
+            document.querySelectorAll('input[type="checkbox"], input[type="radio"]').forEach(input => {
+                input.checked = false;
+            });
+            document.querySelectorAll('.subcategory-options').forEach(sub => {
+                sub.classList.remove('active');
+            });
+            document.querySelectorAll('.category-arrow').forEach(arrow => {
+                arrow.classList.remove('active');
+            });
+            minPriceInput.value = '';
+            maxPriceInput.value = '';
+            brandSearch.value = '';
+            updateProducts();
+        });
+
+        // Brand search functionality
+        brandSearch.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            document.querySelectorAll('#brandFilters .filter-option').forEach(option => {
+                const brandName = option.textContent.trim().toLowerCase();
+                option.style.display = brandName.includes(searchTerm) ? '' : 'none';
+            });
+        });
+
+        // Initial load of products
+        updateProducts();
+
+        // Function to attach cart event listeners
+        function attachCartEventListeners() {
+            document.querySelectorAll('.add-to-cart-form').forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Check if user is logged in
+                    <?php if (!isset($_SESSION['logged_in'])): ?>
+                        // If not logged in, redirect to login page
+                        window.location.href = 'login.php';
+                        return;
+                    <?php else: ?>
+                        const button = this.querySelector('.add-to-cart-btn');
+                        button.disabled = true;
+                        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Adding...';
+
+                        fetch('add_to_cart.php', {
+                            method: 'POST',
+                            body: new FormData(this)
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) {
+                                button.innerHTML = '<i class="fas fa-check"></i> Added to Cart';
+                                setTimeout(() => {
+                                    window.location.href = 'add_to_cart.php';
+                                }, 500);
+                            } else {
+                                button.innerHTML = '<i class="fas fa-times"></i> ' + (data.message || 'Error');
+                                button.disabled = false;
+                                setTimeout(() => {
+                                    button.innerHTML = '<i class="fas fa-shopping-cart"></i> Add to Cart';
+                                }, 2000);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            button.disabled = false;
+                            button.innerHTML = '<i class="fas fa-shopping-cart"></i> Add to Cart';
+                            alert('Error adding to cart. Please try again.');
+                        });
+                    <?php endif; ?>
+                });
+            });
+        }
     });
+
+    function notifyWhenAvailable(productId) {
+        // You can implement the notification functionality here
+        alert('You will be notified when this product becomes available.');
+    }
+
+    function showLoginMessage() {
+        document.getElementById('loginMessage').style.display = 'flex';
+        return false;
+    }
+
+    function closeLoginMessage() {
+        document.getElementById('loginMessage').style.display = 'none';
+    }
     </script>
 </body>
 </html>

@@ -1,19 +1,37 @@
 <?php
 session_start();
 
+// Include database connection
+require_once 'dbconnect.php';
+
 // Redirect to login if not logged in
-if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis here
-    header("Location: login.php");
-    exit();
+if (!isset($_SESSION['logged_in'])) {
+    // Don't redirect - allow anonymous users to view the homepage
+    $logged_in = false;
+} else {
+    $logged_in = true;
+}
+
+// Fetch categories from database
+$categoryQuery = "SELECT category_id, name, description, image_path FROM tbl_categories WHERE deleted = 0 ORDER BY name";
+$categoryResult = $conn->query($categoryQuery);
+$categories = [];
+
+if ($categoryResult) {
+    while ($row = $categoryResult->fetch_assoc()) {
+        $categories[] = $row;
+    }
+}
+
+// Function to get category type from name
+function getCategoryType($name) {
+    $name = strtolower($name);
+    return preg_replace('/[^a-z0-9]+/', '-', $name);
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<<<<<<< HEAD
-<script src="main.js" defer type="module"></script>
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     <meta charset="UTF-8">
     <title>Perfume Paradise</title>
     <style>
@@ -36,9 +54,11 @@ if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis h
             justify-content: space-between;
             align-items: center;
             position: fixed;
+            top: 0;
+            left: 0;
             width: 100%;
             z-index: 1000;
-            border-bottom: 1px solid #222;
+            height: 80px;
         }
 
         .logo {
@@ -49,14 +69,17 @@ if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis h
 
         .nav-links {
             display: flex;
-            gap: 2rem;
-            position: relative;
+            align-items: center;
+            gap: 20px;
         }
 
         .nav-links a {
             color: white;
             text-decoration: none;
             font-size: 1rem;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: normal;
         }
 
         .dropdown {
@@ -67,12 +90,10 @@ if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis h
         .dropdown-content {
             display: none;
             position: absolute;
-            background-color: #111;
+            background-color: #000;
             min-width: 200px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-            z-index: 1001;
-            border-radius: 4px;
-            margin-top: 0.5rem;
+            z-index: 1;
         }
 
         .dropdown:hover .dropdown-content {
@@ -94,117 +115,161 @@ if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis h
 
         .nav-icons {
             display: flex;
-            gap: 1.5rem;
             align-items: center;
+            gap: 30px; /* Equal spacing between icons */
         }
 
-        .nav-icons a {
-            color: white;
-            text-decoration: none;
+        .nav-icons .icon {
+            width: 24px;
+            height: 24px;
+            stroke: white;
+            cursor: pointer;
         }
 
-        .cart-icon {
+        .search-button,
+        .cart-icon,
+        .profile-icon {
+            background: none;
+            border: none;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             position: relative;
         }
 
+        /* Cart count badge */
         .cart-count {
             position: absolute;
             top: -8px;
             right: -8px;
             background-color: #e8a87c;
             color: white;
-            border-radius: 50%;
+            font-size: 12px;
             padding: 2px 6px;
-            font-size: 0.8rem;
+            border-radius: 50%;
+            min-width: 18px;
+            height: 18px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
-        .icon {
-            width: 20px;
-            height: 20px;
-            display: inline-block;
-            vertical-align: middle;
+        /* Hover effect for all icons */
+        .search-button:hover .icon,
+        .cart-icon:hover .icon,
+        .profile-icon:hover .icon {
+            stroke: #e8a87c;
+            transition: stroke 0.3s ease;
         }
 
         .hero {
-    height: 100vh;
-    background: #000;
-    position: relative;
-    overflow: hidden;
-}
+            position: relative;
+            width: 100%;
+            height: 100vh;
+            margin-top: 0;
+            overflow: hidden;
+        }
 
-.slider {
-    width: 100%;
-    height: 100%;
-    position: relative;
-}
+        .slider {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
 
-.slide {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0;
-    transition: opacity 1s ease-in-out;
-}
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+        }
 
-.slide.active {
-    opacity: 1;
-}
+        .slide.active {
+            opacity: 1;
+        }
 
-.slide img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
+        .slide img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
 
-.slider-nav {
-    position: absolute;
-    bottom: 20px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 10px;
-    z-index: 10;
-}
+        .slide-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            text-align: center;
+        }
 
-.slider-dot {
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, 0.5);
-    cursor: pointer;
-    transition: background-color 0.3s ease;
-}
+        .shop-now-btn {
+            display: inline-block;
+            padding: 15px 40px;
+            background-color: #e8a87c;
+            color: white;
+            text-decoration: none;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            transition: all 0.3s ease;
+            border: 2px solid #e8a87c;
+        }
 
-.slider-dot.active {
-    background: #e8a87c;
-}
+        .shop-now-btn:hover {
+            background-color: transparent;
+            color: #fff;
+        }
 
-.slider-arrow {
-    position: absolute;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 40px;
-    height: 40px;
-    background: rgba(0, 0, 0, 0.5);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    cursor: pointer;
-    z-index: 10;
-    color: white;
-    font-size: 24px;
-}
+        .slider-nav {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 10px;
+            z-index: 2;
+        }
 
-.slider-prev {
-    left: 20px;
-}
+        .slider-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background-color: rgba(255, 255, 255, 0.5);
+            cursor: pointer;
+        }
 
-.slider-next {
-    right: 20px;
-}
+        .slider-dot.active {
+            background-color: #fff;
+        }
+
+        .slider-arrow {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 50px;
+            height: 50px;
+            background-color: rgba(0, 0, 0, 0.5);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 24px;
+            border-radius: 50%;
+            z-index: 2;
+        }
+
+        .slider-prev {
+            left: 20px;
+        }
+
+        .slider-next {
+            right: 20px;
+        }
+
         .hero img {
             width: 100%;
             height: 100%;
@@ -212,202 +277,204 @@ if (!isset($_SESSION['logged_in'])) { // Added the missing closing parenthesis h
         }
 
         .story-section {
-      padding: 4rem 2rem;
-      display: flex;
-      flex-direction: column;
-      gap: 4rem;
-      background-color: #000;
-      position: relative;
-      overflow: hidden;
-      min-height: 100vh;
-      align-items: center;
-    }
-/* Base styles */
-body {
-    margin: 0;
-    padding: 0;
-    background-color: #000000;
-}
+            padding: 4rem 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4rem;
+            background-color: #000;
+            position: relative;
+            overflow: hidden;
+            min-height: 100vh;
+            align-items: center;
+        }
 
-/* Container styles */
-.perfume-container {
-    width: 100%;
-    padding: 20px;
-    box-sizing: border-box;
-    background-color: #000000;
-}
+        /* Base styles */
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #000000;
+        }
 
-/* Grid layout */
-.perfume-grid {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 2px;
-    max-width: 1200px;
-    margin: 0 auto;
-}
+        /* Container styles */
+        .perfume-container {
+            width: 100%;
+            padding: 20px;
+            box-sizing: border-box;
+            background-color: #000000;
+        }
 
-/* Card styles */
-.perfume-card {
-    flex: 0 1 400px;
-    position: relative;
-    aspect-ratio: 1;
-    overflow: hidden;
-    background-color: #000000;
-}
+        /* Grid layout */
+        .perfume-grid {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 2px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
 
-/* Image styles */
-.perfume-image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    transition: transform 0.5s ease;
-}
+        /* Card styles */
+        .perfume-card {
+            flex: 0 1 400px;
+            position: relative;
+            aspect-ratio: 1;
+            overflow: hidden;
+            background-color: #000000;
+        }
 
-/* Accent frame styles */
-.accent-frame {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    pointer-events: none;
-}
+        /* Image styles */
+        .perfume-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.5s ease;
+        }
 
-.accent-line {
-    position: absolute;
-    background: #0066ff;
-    box-shadow: 0 0 15px #0066ff;
-    opacity: 0;
-    transition: opacity 0.5s ease;
-}
+        /* Accent frame styles */
+        .accent-frame {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+        }
 
-.accent-line.top {
-    height: 2px;
-    width: 40%;
-    top: 0;
-    right: 0;
-}
+        .accent-line {
+            position: absolute;
+            background: #0066ff;
+            box-shadow: 0 0 15px #0066ff;
+            opacity: 0;
+            transition: opacity 0.5s ease;
+        }
 
-.accent-line.right {
-    width: 2px;
-    height: 40%;
-    top: 0;
-    right: 0;
-}
+        .accent-line.top {
+            height: 2px;
+            width: 40%;
+            top: 0;
+            right: 0;
+        }
 
-.accent-line.bottom {
-    height: 2px;
-    width: 40%;
-    bottom: 0;
-    left: 0;
-}
+        .accent-line.right {
+            width: 2px;
+            height: 40%;
+            top: 0;
+            right: 0;
+        }
 
-.accent-line.left {
-    width: 2px;
-    height: 40%;
-    bottom: 0;
-    left: 0;
-}
+        .accent-line.bottom {
+            height: 2px;
+            width: 40%;
+            bottom: 0;
+            left: 0;
+        }
 
-/* Hover effects */
-.perfume-card:hover .accent-line {
-    opacity: 1;
-}
+        .accent-line.left {
+            width: 2px;
+            height: 40%;
+            bottom: 0;
+            left: 0;
+        }
 
-.perfume-card:hover .perfume-image {
-    transform: scale(1.05);
-}
+        /* Hover effects */
+        .perfume-card:hover .accent-line {
+            opacity: 1;
+        }
 
-/* Info overlay styles */
-.perfume-info {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    padding: 2rem;
-    background: linear-gradient(transparent, rgba(0,0,0,0.8));
-    color: white;
-    opacity: 0;
-    transform: translateY(20px);
-    transition: all 0.3s ease;
-}
+        .perfume-card:hover .perfume-image {
+            transform: scale(1.05);
+        }
 
-.perfume-card:hover .perfume-info {
-    opacity: 1;
-    transform: translateY(0);
-}
+        /* Info overlay styles */
+        .perfume-info {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.3s ease;
+        }
 
-.perfume-name {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-    font-family: 'Times New Roman', serif;
-}
+        .perfume-card:hover .perfume-info {
+            opacity: 1;
+            transform: translateY(0);
+        }
 
-.perfume-description {
-    font-size: 0.9rem;
-    color: #ccc;
-}
+        .perfume-name {
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
+            font-family: 'Times New Roman', serif;
+        }
 
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .perfume-grid {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    .perfume-card {
-        width: 100%;
-        max-width: 300px;
-    }
-}
+        .perfume-description {
+            font-size: 0.9rem;
+            color: #ccc;
+        }
 
-    /* New styles for story content */
-    .story-content {
-      max-width: 800px;
-      text-align: center;
-      color: white;
-      margin-top: 4rem;
-    }
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            .perfume-grid {
+                flex-direction: column;
+                align-items: center;
+            }
+            
+            .perfume-card {
+                width: 100%;
+                max-width: 300px;
+            }
+        }
 
-    .story-title {
-      font-size: 3rem;
-      margin-bottom: 2rem;
-      font-family: 'Times New Roman', serif;
-      color: white;
-    }
+        /* New styles for story content */
+        .story-content {
+            max-width: 800px;
+            text-align: center;
+            color: white;
+            margin-top: 4rem;
+        }
 
-    .story-content p {
-      line-height: 1.6;
-      color: #ccc;
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
-    }
+        .story-title {
+            font-size: 3rem;
+            margin-bottom: 2rem;
+            font-family: 'Times New Roman', serif;
+            color: white;
+        }
 
-    .button {
-      display: inline-block;
-      padding: 12px 30px;
-      background-color: #e8a87c;
-      color: white;
-      text-decoration: none;
-      border-radius: 25px;
-      transition: background-color 0.3s ease;
-      margin-top: 2rem;
-    }
+        .story-content p {
+            line-height: 1.6;
+            color: #ccc;
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
 
-    .button:hover {
-      background-color: #d89668;
-    }
-    .products-section {
+        .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #e8a87c;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: background-color 0.3s ease;
+            margin-top: 2rem;
+        }
+
+        .button:hover {
+            background-color: #d89668;
+        }
+
+        .products-section {
             padding: 4rem 2rem;
         }
+
         .section-title {
             font-size: 2.5rem;
             text-align: center;
             margin-bottom: 2rem;
             font-family: 'Times New Roman', serif;
         }
-
 
         .product-filters {
             display: flex;
@@ -475,6 +542,7 @@ body {
             justify-content: center;
             margin-bottom: 1rem;
         }
+
         .service-section {
             display: flex;
             justify-content: space-between;
@@ -557,268 +625,847 @@ body {
         }
 
         .search-container {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
+            position: relative;
+            display: flex;
+            align-items: center;
+            flex-grow: 1;
+            max-width: 500px;
+            margin: 0 20px;
+        }
 
-.search-button {
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    padding: 10px;
-}
+        .search-bar {
+            width: 100%;
+            background: white;
+            border: none;
+            padding: 12px 15px;
+            border-radius: 4px;
+            font-size: 14px;
+            color: #333;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
 
-.search-button img {
-    width: 18px;
-    height: 18px;
-}
+        .search-bar:focus {
+            outline: none;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+        }
 
-.search-bar {
-    position: absolute;
-    top: 0;
-    right: 100%;
-    width: 0;
-    visibility: hidden;
-    opacity: 0;
-    transition: all 0.3s ease;
-    background: #333;
-    border: none;
-    padding: 10px;
-    color: white;
-}
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 1000;
+            margin-top: 2px;
+        }
 
-.search-bar.active {
-    width: 300px;
-    visibility: visible;
-    opacity: 1;
-    margin-right: 10px;
-}
+        .search-result-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
 
-.search-bar::placeholder {
-    color: #999;
-}
+        .search-result-item:hover {
+            background: #f8f8f8;
+        }
 
-.search-bar:focus {
-    outline: none;
-} 
-.profile-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #e8a87c;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.2rem;
-    font-weight: bold;
-    cursor: pointer;
-}
+        .search-result-image {
+            width: 40px;
+            height: 40px;
+            object-fit: contain;
+            margin-right: 15px;
+        }
 
-.dropdown-menu {
-    display: none;
-    position: absolute;
-    top: 80px;
-    right: 0;
-    left:auto;
-    background-color: #111;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    border-radius: 4px;
-    z-index: 1000;
-}
+        .search-result-info {
+            flex: 1;
+        }
 
-.dropdown-menu a {
-    display: flex;
-    align-items: center;
-    gap: 10px; /* Space between icon and text */
-    padding: 10px 20px;
-    color: white;
-    text-decoration: none;
-    transition: background-color 0.3s;
-}
+        .search-result-title {
+            font-size: 14px;
+            color: #212121;
+            margin-bottom: 4px;
+        }
 
-.dropdown-menu a:hover {
-    background-color: #222;
-    color: #e8a87c;
-}
+        .search-result-price {
+            font-size: 12px;
+            color: #388e3c;
+            font-weight: 500;
+        }
 
-.dropdown-menu i {
-    width: 20px; /* Fixed width for icons */
-    text-align: center;
-}
-.profile-menu:hover .dropdown-menu {
-    display: block;
-}
+        .search-result-category {
+            font-size: 12px;
+            color: #878787;
+        }
 
-.slide {
-    position: relative; /* Add this to position the button relative to the slide */
-}
+        .profile-circle {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #e8a87c;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
 
-.slide-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 2;
-}
+        .dropdown-menu {
+            display: none;
+            position: absolute;
+            top: 80px;
+            right: 0;
+            left:auto;
+            background-color: #111;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+            z-index: 1000;
+        }
 
-.shop-now-btn {
-    display: inline-block;
-    background-color: #e8a87c;
-    color: #000;
-    text-decoration: none;
-    padding: 15px 40px;
-    font-size: 1.2rem;
-    font-weight: bold;
-    border-radius: 30px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    text-transform: uppercase;
-    letter-spacing: 2px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-}
+        .dropdown-menu a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
 
-.shop-now-btn:hover {
-    background-color: #fff;
-    color: #000;
-    transform: translateY(-2px) scale(1.05);
-    box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-}
+        .dropdown-menu a:hover {
+            background-color: #222;
+            color: #e8a87c;
+        }
 
-/* Add a subtle overlay to make the button more visible */
-.slide::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0,0,0,0.3);
-    pointer-events: none;
-}
+        .dropdown-menu i {
+            width: 20px;
+            text-align: center;
+        }
 
-/* Add animation for button entrance */
-@keyframes fadeInUp {
-    from {
-        opacity: 0;
-        transform: translate(-50%, 20px);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-    }
-}
+        .profile-menu:hover .dropdown-menu {
+            display: block;
+        }
 
-.slide.active .slide-content {
-    animation: fadeInUp 0.8s ease forwards;
-}
+        .slide {
+            position: relative;
+        }
+
+        .slide-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+        }
+
+        .shop-now-btn {
+            display: inline-block;
+            background-color: #e8a87c;
+            color: #000;
+            text-decoration: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+
+        .shop-now-btn:hover {
+            background-color: #fff;
+            color: #000;
+            transform: translateY(-2px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+
+        .slide::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.3);
+            pointer-events: none;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translate(-50%, 20px);
+            }
+            to {
+                opacity: 1;
+                transform: translate(-50%, -50%);
+            }
+        }
+
+        .slide.active .slide-content {
+            animation: fadeInUp 0.8s ease forwards;
+        }
+
+        .categories-section {
+            padding: 4rem 2rem;
+            background-color: #000;
+        }
+
+        .categories-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .category-card {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            height: 300px;
+            background: #000;
+        }
+
+        .category-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+
+        .category-card:hover img {
+            transform: scale(1.1);
+        }
+
+        .category-content {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem;
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            color: white;
+            text-align: center;
+        }
+
+        .category-content h3 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+            color: white;
+        }
+
+        .view-collection {
+            display: inline-block;
+            padding: 0.5rem 1.5rem;
+            background-color: #e8a87c;
+            color: white;
+            text-decoration: none;
+            border-radius: 25px;
+            transition: background-color 0.3s ease;
+        }
+
+        .view-collection:hover {
+            background-color: #d89666;
+        }
+
+        .categories-section h2 {
+            text-align: center;
+            font-size: 2.5rem;
+            color: white;
+            margin-bottom: 3rem;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #f9f9f9;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+            z-index: 1;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+        .category-dropdown {
+            position: relative;
+        }
+
+        .category-dropdown > a {
+            display: block;
+            padding: 12px 16px;
+            text-decoration: none;
+            color: #333;
+        }
+
+        .category-dropdown:hover {
+            background-color: #f1f1f1;
+        }
+
+        .subcategory-dropdown {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background-color: #f9f9f9;
+            min-width: 200px;
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
+        }
+
+        .category-dropdown:hover .subcategory-dropdown {
+            display: block;
+        }
+
+        .subcategory-dropdown a {
+            color: #333;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+        }
+
+        .subcategory-dropdown a:hover {
+            background-color: #f1f1f1;
+        }
+
+        /* Profile Dropdown Styles */
+        .profile-icon {
+            position: relative;
+            cursor: pointer;
+        }
+
+        .user-circle {
+            width: 35px;
+            height: 35px;
+            background: #e8a87c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #1a1a1a;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-circle:hover {
+            background: #d69a6f;
+        }
+
+        .profile-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 220px;
+            background: #1a1a1a;
+            border: 1px solid #333;
+            border-radius: 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+            display: none;
+            z-index: 1000;
+            margin-top: 10px;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        .profile-dropdown a {
+            display: flex;
+            align-items: center;
+            padding: 12px 16px;
+            color: #fff;
+            text-decoration: none;
+            font-size: 14px;
+            transition: background 0.2s;
+            border-bottom: 1px solid #333;
+        }
+
+        .profile-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .profile-dropdown a i {
+            margin-right: 10px;
+            width: 20px;
+            color: #e8a87c;
+        }
+
+        .profile-dropdown a:hover {
+            background: #2a2a2a;
+        }
+
+        .logout-btn {
+            color: #ff6b6b !important;
+        }
+
+        .logout-btn i {
+            color: #ff6b6b !important;
+        }
+
+        /* Add arrow to dropdown */
+        .profile-dropdown::before {
+            content: '';
+            position: absolute;
+            top: -6px;
+            right: 15px;
+            width: 10px;
+            height: 10px;
+            background: #1a1a1a;
+            border-left: 1px solid #333;
+            border-top: 1px solid #333;
+            transform: rotate(45deg);
+        }
+
+        @media (max-width: 768px) {
+            .profile-dropdown {
+                width: 200px;
+                right: -10px;
+            }
+        }
+
+        /* Search Styles */
+        .search-container {
+            position: relative;
+        }
+
+        .search-bar {
+            display: none;
+            position: absolute;
+            right: 100%;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 200px;
+            padding: 8px 12px;
+            background-color: #1a1a1a;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 4px;
+            color: white;
+        }
+
+        .search-bar.active {
+            display: block;
+        }
+
+        .search-results {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            width: 250px;
+            background-color: #1a1a1a;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            margin-top: 5px;
+            z-index: 1000;
+        }
+
+        .search-result-item {
+            padding: 12px 15px;
+            color: white;
+            cursor: pointer;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .search-result-item:hover {
+            background-color: #333;
+        }
+
+        .no-results {
+            padding: 15px;
+            text-align: center;
+            color: rgba(255,255,255,0.7);
+        }
+
+        /* User Circle Styles */
+        .user-circle {
+            width: 32px;
+            height: 32px;
+            background-color: #e8a87c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-circle:hover {
+            background-color: #d89666;
+        }
+
+        /* Updated Profile Dropdown Styles */
+        .profile-dropdown {
+            display: none;
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background-color: #1a1a1a;
+            min-width: 200px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            border-radius: 4px;
+            margin-top: 10px;
+            z-index: 1000;
+        }
+
+        .profile-dropdown::before {
+            content: '';
+            position: absolute;
+            top: -8px;
+            right: 15px;
+            border-left: 8px solid transparent;
+            border-right: 8px solid transparent;
+            border-bottom: 8px solid #1a1a1a;
+        }
+
+        .profile-dropdown a {
+            display: flex;
+            align-items: center;
+            padding: 12px 20px;
+            color: white;
+            text-decoration: none;
+            transition: background-color 0.3s;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .profile-dropdown a:last-child {
+            border-bottom: none;
+        }
+
+        .profile-dropdown a i {
+            margin-right: 10px;
+            width: 20px;
+            text-align: center;
+            color: #e8a87c;
+        }
+
+        .profile-dropdown a:hover {
+            background-color: #333;
+        }
+
+        .profile-dropdown.show {
+            display: block;
+        }
+
+        .brands-dropdown {
+            display: none;
+            position: absolute;
+            left: 100%;
+            top: 0;
+            background-color: #fff;
+            min-width: 200px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+        }
+
+        .subcategory-item:hover .brands-dropdown {
+            display: block;
+        }
+
+        .brands-dropdown a {
+            color: #000 !important;
+            padding: 12px 16px;
+            text-decoration: none;
+            display: block;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: 400;
+            text-transform: none;
+            letter-spacing: normal;
+            background-color: #fff;
+        }
+
+        .brands-dropdown a:hover {
+            background-color: #f5f5f5;
+            color: #e8a87c !important;
+        }
+
+        /* Ensure proper z-index and transitions */
+        .dropdown-content,
+        .subcategory-dropdown,
+        .brands-dropdown {
+            z-index: 1000;
+        }
+
+        .subcategory-item {
+            position: relative;
+        }
+
+        .search-container {
+            flex: 1;
+            max-width: 600px;
+            margin: 0 20px;
+            position: relative;
+        }
+
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: white;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .search-box input {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            width: 100%;
+        }
+
+        .search-button {
+            padding: 12px 20px;
+            background: #e8a87c;
+            border: none;
+            color: white;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .search-button:hover {
+            background: #d69a6f;
+        }
+
+        .search-suggestions {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 0 0 4px 4px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: none;
+            z-index: 1000;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .suggestion-item {
+            display: flex;
+            align-items: center;
+            padding: 10px 16px;
+            cursor: pointer;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .suggestion-item:hover {
+            background: #f8f8f8;
+        }
+
+        .suggestion-image {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            margin-right: 12px;
+            border-radius: 4px;
+        }
+
+        .suggestion-details {
+            flex: 1;
+        }
+
+        .suggestion-name {
+            font-size: 14px;
+            color: #212121;
+            margin-bottom: 4px;
+        }
+
+        .suggestion-brand {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .suggestion-price {
+            font-weight: 500;
+            color: #388e3c;
+        }
+
+        .suggestion-category {
+            display: flex;
+            align-items: center;
+            padding: 8px 16px;
+            background: #f5f5f5;
+            color: #666;
+            font-size: 12px;
+            font-weight: 500;
+        }
+
+        .no-suggestions {
+            padding: 16px;
+            text-align: center;
+            color: #666;
+        }
+
+        /* Mobile responsiveness */
+        @media (max-width: 768px) {
+            .search-container {
+                margin: 0 10px;
+            }
+            
+            .search-box input {
+                padding: 10px 12px;
+            }
+            
+            .search-button {
+                padding: 10px 15px;
+            }
+        }
+
+        /* Add these styles while keeping your existing profile-icon styles */
+        .user-initial {
+            width: 35px;
+            height: 35px;
+            background: #e8a87c;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .user-initial:hover {
+            background: #d69a6f;
+        }
+
+        /* Add these specific styles for login/signup buttons */
+        .login-btn, .signup-btn {
+            color: #fff !important;
+            transition: background-color 0.3s ease;
+        }
+
+        .login-btn:hover, .signup-btn:hover {
+            background-color: #2a2a2a !important;
+        }
+
+        .login-btn i, .signup-btn i {
+            color: #e8a87c !important;
+        }
 
     </style>
 </head>
 <body>
 <nav>
-    <div class="logo"><img src="image/logo.png" alt="Perfume Paradise Logo"></div>
-
+    <div class="logo">
+        <a href="index.php">
+            <img src="image/logo.png" alt="Perfume Paradise Logo">
+        </a>
+    </div>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
     <div class="nav-links">
-        <a href="#perfume">Home</a>
-        
+        <a href="index.php">Home</a> 
         <div class="dropdown">
             <a href="#categories">Categories</a>
             <div class="dropdown-content">
-                <a href="#">Men's Perfumes</a>
-                <a href="#">Women's Perfumes</a>
-                <a href="#unisex-perfumes">Unisex Perfumes</a>
-                <a href="#luxury-perfumes">Luxury Perfumes</a>
-                <a href="#niche-perfumes">Niche Perfumes</a>
-                <a href="#body-mists">Body Mists & Colognes</a>
-                <a href="#skincare-fragrances">Skincare Fragrances</a>
-                <a href="#perfume-oils">Perfume Oils</a>
+                <div class="category-dropdown">
+                    <?php foreach($categories as $category): ?>
+                        <a href="productslist.php?category=<?php echo $category['category_id']; ?>">
+                            <?php echo htmlspecialchars($category['name']); ?>
+                        </a>
+                    <?php endforeach; ?>
+                </div>
             </div>
         </div>
-        <a href="#body-spray">Brands</a>
-        
-        <a href="Aboutas.php">Our story</a>
-            </div>
+        <a href="Aboutas.php">Our story</a> 
+        <a href="contactus.php">Contact Us</a>
+    </div>
+    &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    <div class="search-container">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="Search for perfumes...">
+            <button type="button" class="search-button">
+                <i class="fas fa-search"></i>
+            </button>
+        </div>
+        <div class="search-suggestions" id="searchSuggestions"></div>
     </div>
 
     <div class="nav-icons">
-        <div class="search-container">
-            <input type="text" class="search-bar" placeholder="Search Products Here">
-            <button class="search-button">
-                <img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PGNpcmNsZSBjeD0iMTEiIGN5PSIxMSIgcj0iOCIvPjxsaW5lIHgxPSIyMSIgeTE9IjIxIiB4Mj0iMTYuNjUiIHkyPSIxNi42NSIvPjwvc3ZnPg==" alt="Search">
-            </button>
-        </div>
-        <div class="cart-icon">
-            <a href="cart.php">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="9" cy="21" r="1"/>
-                    <circle cx="20" cy="21" r="1"/>
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
-                </svg>
-            </a>
-            
-        </div>
-        
+        <a href="add_to_cart.php" class="cart-icon">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="9" cy="21" r="1"/>
+                <circle cx="20" cy="21" r="1"/>
+                <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+            </svg>
+            <?php if (isset($_SESSION['cart_count'])): ?>
+                <span class="cart-count"><?php echo $_SESSION['cart_count']; ?></span>
+            <?php endif; ?>
+        </a>
 
-        <?php if (isset($_SESSION['username'])): ?>
-            <div class="profile-menu">
-            <div class="profile-circle" onclick="toggleDropdown()">
-                    <div class="profile-circle"><?php echo strtoupper(substr($_SESSION['username'], 0, 1)); ?></div>
+        <div class="profile-icon">
+            <?php if(isset($_SESSION['user_id'])): ?>
+                <div class="user-circle" id="userCircle">
+                    <?php 
+                        $username = $_SESSION['username'];
+                        echo strtoupper(substr($username, 0, 1));
+                    ?>
                 </div>
-                <div class="dropdown-menu">
-    <a href="profile.php">
-        <i class="fas fa-user"></i> Profile
-    </a>
-    <a href="settings.php">
-        <i class="fas fa-cog"></i> Settings
-    </a>
-    <a href="orders.php">
-        <i class="fas fa-shopping-bag"></i> Orders
-    </a>
-    <a href="wishlist.php">
-        <i class="fas fa-heart"></i> Wishlist
-    </a>
-    <a href="logout.php">
-        <i class="fas fa-sign-out-alt"></i> Logout
-    </a>
-</div>
-            </div>
-        <?php else: ?>
-            <a href="login.php" class="profile-icon">
-                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <circle cx="12" cy="8" r="4"/>
-                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                </svg>
-                
-            </a>
-        <?php endif; ?>
-
-        
+                <div class="profile-dropdown" id="profileDropdown">
+                    <a href="profile.php">
+                        <i class="fas fa-user"></i> Profile
+                    </a>
+                    <a href="orders.php">
+                        <i class="fas fa-shopping-bag"></i> Orders
+                    </a>
+                    <a href="wishlist.php">
+                        <i class="fas fa-heart"></i> Wishlist
+                    </a>
+                    <a href="logout.php" class="logout-btn">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </div>
+            <?php else: ?>
+                <div class="user-circle" id="userCircle">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="profile-dropdown" id="profileDropdown">
+                    <a href="login.php" class="login-btn">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </a>
+                    <a href="signup.php" class="signup-btn">
+                        <i class="fas fa-user-plus"></i> Sign Up
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
 </nav>
 
-
-    <section class="hero">
+<section class="hero">
     <div class="slider">
         <div class="slide active">
             <img src="image/image1.jpg" alt="Luxury perfume bottles with dramatic lighting" />
             <div class="slide-content">
-<<<<<<< HEAD
                 <a href="productslist.php" class="shop-now-btn">Shop Now</a>
-=======
-                <a href="products.php" class="shop-now-btn">Shop Now</a>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             </div>
         </div>
         <div class="slide">
             <img src="image/image2.jpg" alt="Luxury perfume bottles with dramatic lighting" />
             <div class="slide-content">
-<<<<<<< HEAD
                 <a href="productslist.php" class="shop-now-btn">Shop Now</a>
-=======
-                <a href="products.php" class="shop-now-btn">Shop Now</a>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             </div>
         </div>
     </div>
@@ -837,7 +1484,6 @@ body {
       <p>perfume's unique personality. Together, these layers evoke emotions and set the mood, whether fresh and playful, romantic and elegant, or bold and mysterious.Each perfume</p>
       <p>tells a unique story, designed to captivate the senses and leave a lasting impression.</p>
       <br><br><br>
-      <a href="#" class="button">Read More</a>
     </div>
 
     <div class="perfume-container">
@@ -867,68 +1513,24 @@ body {
             </div>
         </div>
     </div>
-    </section>
+</section>
 
-<section class="products-section">
-        <h2 class="section-title">Popular Products</h2>
-        <div class="product-filters">
-            <button class="filter-btn active">New Arrival</button>
-            <button class="filter-btn ">Bestseller</button>
-            <button class="filter-btn ">Special</button>
-        </div>
-        <div class="product-grid">
-            <div class="product-card">
-                <span class="product-discount">46% Off</span>
-                <img src="image/image6.png" alt="Perfume product" />
-                <h3>Shalimar Luxury</h3>
-                <p>$140.00</p>
+<section class="categories-section">
+    <h2 style="font-family: 'Times New Roman', serif">Our Categories</h2>
+    <div class="categories-grid">
+        <?php foreach ($categories as $category): ?>
+            <div class="category-card">
+                <img src="<?php echo htmlspecialchars($category['image_path']); ?>" 
+                     alt="<?php echo htmlspecialchars($category['name']); ?>">
+                <div class="category-content">
+                    <h3><?php echo htmlspecialchars($category['name']); ?></h3>
+                    <a href="productslist.php?category=<?php echo $category['category_id']; ?>" class="view-collection">View Collection</a>
+                </div>
             </div>
-            <div class="product-card">
-                <span class="product-discount">16% Off</span>
-                <img src="image/image7.png" alt="Perfume product" />
-                <h3>Neque Porro Quisquam</h3>
-                <p>$64.00</p>
-            </div>
-            <div class="product-card">
-                <span class="product-discount">8% Off</span>
-                <img src=" image/image7.png" alt="Perfume product" />
-                <h3>Consectetur Hampden</h3>
-                <p>$110.00</p>
-            </div>
-            <div class="product-card">
-                <span class="product-discount">5% Off</span>
-                <img src="image/image8.png" alt="Perfume product" />
-                <h3>Praesentium Voluptatum</h3>
-                <p>$122.00</p>
-            </div>
-            <div class="product-card">
-                <span class="product-discount">18% Off</span>
-                <img src="image/image9.png" alt="Perfume product" />
-                <h3>Accusantium Doloremque</h3>
-                <p>$86.00</p>
-            </div>
-            <div class="product-card">
-                <span class="product-discount">5% Off</span>
-                <img src="image/image10.png" alt="Perfume product" />
-                <h3>Aliquam Quaerat</h3>
-                <p>$108.80</p>
-            </div>
-            <div class="product-card">
-                <span class="product-discount">6% Off</span>
-                <img src="image/image11.png" alt="Perfume product" />
-                <h3>Nostrud Exercitation</h3>
-                <p>$78.80</p>
-            </div>
-            <div class="product-card">
-                <span class="product-discount">3% Off</span>
-                <img src="image/image12.png" alt="Perfume product" />
-                <h3>Necessitatibus</h3>
-                <p>$166.00</p>
-            </div>
-            
-        </div>
-    </section>
- 
+        <?php endforeach; ?>
+    </div>
+</section>
+
   
     <section class="service-section">
         <div class="service-item">
@@ -973,19 +1575,18 @@ body {
             <div>
                 <h3 class="footer-title">Information</h3>
                 <ul class="footer-links">
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Delivery Information</a></li>
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms & Conditions</a></li>
+                    <li><a href="Aboutas.php">About Us</a></li>
+                    <li><a href="contactus.php">Contact Us</a></li>
                 </ul>
             </div>
             <div>
                 <h3 class="footer-title">My Account</h3>
                 <ul class="footer-links">
-                    <li><a href="#">My Account</a></li>
-                    <li><a href="#">Order History</a></li>
-                    <li><a href="#">Wish List</a></li>
-                    <li><a href="#">Newsletter</a></li>
+                    <li><a href="index.php">My Account</a></li>
+                    <li><a href="orders.php">Order History</a></li>
+                    <li><a href="wishlist.php">Wish List</a></li>
+                   
+                   
                 </ul>
             </div>
             <div>
@@ -1001,185 +1602,7 @@ body {
     </footer>
     <script>
         // Product data
-const products = {
-    newArrival: [
-        {
-            id: 1,
-            name: "Shalimar Luxury",
-            price: 140.00,
-            discount: 46,
-            image: "image/image6.png"
-        },
-        {
-            id: 2,
-            name: "Neque Porro Quisquam",
-            price: 64.00,
-            discount: 16,
-            image: "image/image7.png"
-        },
-        {
-            id: 3,
-            name: "Commodi Consequatur",
-            price: 92.00,
-            discount: 33,
-            image: "image/image8.png"
-        },
-        {
-            id: 4,
-            name: "Laborum Eveniet",
-            price: 97.00,
-            discount: 12,
-            image: "image/image9.png"
-        },
-        {
-            id: 5,
-            name: "Necessitatibus",
-            price: 116.00,
-            discount: 6,
-            image: "image/image10.png"
-        },
-        {
-            id: 6,
-            name: "Occasion Praesentium",
-            price: 104.00,
-            discount: 7,
-            image: "image/image11.png"
-        },
-        {
-            id: 7,
-            name: "Voluptas Assumenda",
-            price: 122.00,
-            discount: 16,
-            image: "image/image12.png"
-        },
-        {
-            id: 8,
-            name: "Exercitat Virginia",
-            price: 104.00,
-            discount: 11,
-            image: "image/image13.png"
-        },
-        
-    ],
-    bestseller: [
-        {
-            id: 7,
-            name: "Necessitatibus",
-            price: 180.00,
-            discount: 25,
-            image: "image/image10.png" 
-        },
-        {
-            id: 8,
-            name: "Exercitat Virginia",
-            price: 95.00,
-            discount: 20,
-            image: "image/image15.png"
-        },
-        {
-            id: 9,
-            name: "Ocean Breeze",
-            price: 95.00,
-            discount: 20,
-            image: "image/image16.png"
-        },
-        {
-            id: 10,
-            name: "Rose Garden Elite",
-            price: 95.00,
-            discount: 20,
-            image: "image/image17.png"
-        },
-        {
-            id: 11,
-            name: "Neque Porro Quisquam",
-            price: 95.00,
-            discount: 20,
-            image: "image/image18.png"
-        },
-        {
-            id: 12,
-            name: "Nostrud Exercitation",
-            price: 95.00,
-            discount: 20,
-            image: "image/image19.png"
-        },
-        {
-            id: 13,
-            name: "Commodi Consequatur",
-            price: 95.00,
-            discount: 20,
-            image: "image/image8.png"
-        },
-        {
-            id: 14,
-            name: "Neque Porro Quisquam",
-            price: 95.00,
-            discount: 20,
-            image: "image/image7.png"
-        },
-        // Add more bestseller products here
-    ],
-    special: [
-        {
-            id: 15,
-            name: "Midnight Mystery",
-            price: 220.00,
-            discount: 30,
-            image: "image/image15.png"
-        },
-        {
-            id: 16,
-            name: "Exercitat Virginia",
-            price: 150.00,
-            discount: 15,
-            image: "image/image13.png"
-        },
-        {
-            id: 17,
-            name: "Aliquam Quaerat",
-            price: 95.00,
-            discount: 20,
-            image: "image/image20.png"
-        },
-        {
-            id: 18,
-            name: "Accusantium Doloremque",
-            price: 95.00,
-            discount: 20,
-            image: "image/image21.png"
-        },
-        {
-            id: 19,
-            name: "Ocean Breeze",
-            price: 95.00,
-            discount: 20,
-            image: "image/image22.png"
-        },
-        {
-            id: 20,
-            name: "Consectetur Hampden",
-            price: 95.00,
-            discount: 20,
-            image: "image/image17.png"
-        },
-        {
-            id: 21,
-            name: "Laborum Eveniet",
-            price: 95.00,
-            discount: 20,
-            image: "image/image9.png"
-        },
-        {
-            id: 22,
-            name: "Aliquam Quaerat",
-            price: 95.00,
-            discount: 20,
-            image: "image/image18.png"
-        },
-        // Add more special products here
-    ]
-};
+
 
 // Function to create product card HTML
 function createProductCard(product) {
@@ -1229,22 +1652,92 @@ document.addEventListener('click', (e) => {
 });
     </script>
    <script>
-document.querySelector('.search-button').addEventListener('click', function() {
-    const searchBar = document.querySelector('.search-bar');
-    searchBar.classList.toggle('active');
-    if (searchBar.classList.contains('active')) {
-        searchBar.focus();
-    }
-});
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const searchSuggestions = document.getElementById('searchSuggestions');
+    let searchTimeout;
 
-// Close search bar when clicking outside
-document.addEventListener('click', function(event) {
-    const searchContainer = document.querySelector('.search-container');
-    const searchBar = document.querySelector('.search-bar');
-    
-    if (!searchContainer.contains(event.target)) {
-        searchBar.classList.remove('active');
-    }
+    searchInput.addEventListener('input', function() {
+        const query = this.value.trim();
+        
+        // Clear previous timeout
+        clearTimeout(searchTimeout);
+        
+        if (query.length > 2) {
+            // Show loading state
+            searchSuggestions.style.display = 'block';
+            searchSuggestions.innerHTML = '<div class="suggestion-item">Searching...</div>';
+            
+            // Debounce the search
+            searchTimeout = setTimeout(() => {
+                fetch(`search_suggestions.php?query=${encodeURIComponent(query)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success && data.suggestions.length > 0) {
+                            let html = '';
+                            let currentCategory = '';
+                            
+                            data.suggestions.forEach(suggestion => {
+                                if (suggestion.type === 'category') {
+                                    html += `
+                                        <div class="suggestion-category">
+                                            <i class="fas fa-folder mr-2"></i>
+                                            in ${suggestion.name}
+                                        </div>
+                                    `;
+                                } else {
+                                    html += `
+                                        <div class="suggestion-item" onclick="window.location.href='product_details.php?id=${suggestion.id}'">
+                                            <img src="${suggestion.image}" alt="${suggestion.name}" class="suggestion-image">
+                                            <div class="suggestion-details">
+                                                <div class="suggestion-name">${suggestion.name}</div>
+                                                <div class="suggestion-brand">${suggestion.brand}</div>
+                                                <div class="suggestion-price">₹${parseFloat(suggestion.price).toFixed(2)}</div>
+                                            </div>
+                                        </div>
+                                    `;
+                                }
+                            });
+                            
+                            searchSuggestions.innerHTML = html;
+                        } else {
+                            searchSuggestions.innerHTML = '<div class="no-suggestions">No results found</div>';
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        searchSuggestions.innerHTML = '<div class="no-suggestions">Error searching products</div>';
+                    });
+            }, 300);
+        } else {
+            searchSuggestions.style.display = 'none';
+        }
+    });
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!searchInput.contains(e.target) && !searchSuggestions.contains(e.target)) {
+            searchSuggestions.style.display = 'none';
+        }
+    });
+
+    // Handle search button click
+    document.querySelector('.search-button').addEventListener('click', function() {
+        const query = searchInput.value.trim();
+        if (query) {
+            window.location.href = `productslist.php?search=${encodeURIComponent(query)}`;
+        }
+    });
+
+    // Handle enter key in search input
+    searchInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            const query = this.value.trim();
+            if (query) {
+                window.location.href = `productslist.php?search=${encodeURIComponent(query)}`;
+            }
+        }
+    });
 });
 </script>
 <script>
@@ -1338,7 +1831,6 @@ document.addEventListener('DOMContentLoaded', function() {
               line.style.opacity = '0';
             }, index * 100);
           });
-        });
       });
     });
   </script>
@@ -1377,23 +1869,34 @@ document.addEventListener('click', function(event) {
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-<<<<<<< HEAD
     // Remove the old shop now button click handler
     // const shopNowButtons = document.querySelectorAll('.shop-now-btn');
     // shopNowButtons.forEach(button => { ... });
-=======
-    // Add click event for shop now buttons
-    const shopNowButtons = document.querySelectorAll('.shop-now-btn');
-    shopNowButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            // Scroll to products section
-            const productsSection = document.querySelector('.product-section');
-            if (productsSection) {
-                productsSection.scrollIntoView({ behavior: 'smooth' });
-            }
-        });
+});
+</script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const profileIcon = document.querySelector('.profile-icon');
+    const profileDropdown = document.querySelector('.profile-dropdown');
+
+    // Toggle dropdown on click
+    profileIcon.addEventListener('click', function(e) {
+        e.stopPropagation();
+        profileDropdown.classList.toggle('show');
     });
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+
+    // Close dropdown when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!profileIcon.contains(e.target)) {
+            profileDropdown.classList.remove('show');
+        }
+    });
+
+    // Prevent dropdown from closing when clicking inside it
+    profileDropdown.addEventListener('click', function(e) {
+        e.stopPropagation();
+    });
 });
 </script>
 

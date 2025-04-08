@@ -196,8 +196,7 @@ $is_logged_in = isset($_SESSION['user_id']);
         </div>
         <nav class="nav-menu">
             <a href="index.php">Home</a>
-            <a href="#">Categories</a>
-            <a href="#">Brands</a>
+            
             <a href="Aboutas.php">Our Story</a>
         </nav>
         

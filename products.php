@@ -72,6 +72,19 @@ if (!function_exists('sanitize_input')) {
 $message = "";
 $error = "";
 
+// Add this after your session and database connection code
+$stmt = $conn->prepare("SELECT verified_status FROM tbl_seller WHERE Signup_id = ?");
+$stmt->bind_param("i", $_SESSION['user_id']);
+$stmt->execute();
+$result = $stmt->get_result();
+$seller_status = $result->fetch_assoc();
+
+if ($seller_status['verified_status'] !== 'verified') {
+    $_SESSION['error_message'] = "Your account needs to be verified before you can manage products.";
+    header('Location: seller-dashboard.php');
+    exit();
+}
+
 // Handle delete product
 if (isset($_GET['delete']) && is_numeric($_GET['delete'])) {
     $product_id = $_GET['delete'];
@@ -150,17 +163,10 @@ $subcategories = $subcategoryQuery->get_result()->fetch_all(MYSQLI_ASSOC);
 
 // 3. Fetch all brands
 $brandQuery = $conn->prepare("
-<<<<<<< HEAD
     SELECT b.brand_id, b.name as brand_name, b.subcategory_id
     FROM tbl_brands b
     WHERE b.deleted = 0
     ORDER BY b.name ASC
-=======
-    SELECT brand_id, name as brand_name
-    FROM tbl_brands
-    WHERE deleted = 0
-    ORDER BY name ASC
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
 ");
 $brandQuery->execute();
 $brands = $brandQuery->get_result()->fetch_all(MYSQLI_ASSOC);
@@ -184,94 +190,129 @@ $productQuery->bind_param("i", $actual_seller_id);
 $productQuery->execute();
 $products = $productQuery->get_result()->fetch_all(MYSQLI_ASSOC);
 
+// Helper function to check if product name exists
+function checkProductNameExists($conn, $name, $seller_id, $product_id = null) {
+    $query = "SELECT product_id FROM tbl_product WHERE name = ? AND seller_id = ? AND deleted = 0";
+    $params = [$name, $seller_id];
+    $types = "si";
+    
+    if ($product_id) {
+        // Exclude current product when editing
+        $query .= " AND product_id != ?";
+        $params[] = $product_id;
+        $types .= "i";
+    }
+    
+    $stmt = $conn->prepare($query);
+    $stmt->bind_param($types, ...$params);
+    $stmt->execute();
+    $result = $stmt->get_result();
+    return $result->num_rows > 0;
+}
+
 // Update the form submission handling
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_product') {
-    // Sanitize inputs
     $name = sanitize_input($conn, $_POST['name']);
     $description = sanitize_input($conn, $_POST['description']);
     $price = floatval($_POST['price']);
     $stock = intval($_POST['stock']);
     $category_id = intval($_POST['category_id']);
-    $subcategory_id = intval($_POST['subcategory_id']);
-    $brand_id = intval($_POST['brand_id']);
+    $size = sanitize_input($conn, $_POST['size']);
     
-    // Validation
-    if (empty($name) || empty($description) || $price <= 0 || $stock < 0) {
-        $error = "Please fill all required fields correctly";
+    // For editing existing product
+    $product_id = isset($_POST['product_id']) ? intval($_POST['product_id']) : null;
+    
+    if (empty($name) || empty($description) || $price <= 0 || $stock <= 0 || empty($category_id) || empty($size)) {
+        $error = "Please fill all required fields";
     } else {
-        if (isset($_POST['product_id']) && !empty($_POST['product_id'])) {
-            // Update existing product
-            $product_id = intval($_POST['product_id']);
-            
-            // Verify this product belongs to the seller
-            $stmt = $conn->prepare("SELECT product_id FROM tbl_product WHERE product_id = ? AND seller_id = ? AND deleted = 0");
-            $stmt->bind_param("ii", $product_id, $actual_seller_id);
-            $stmt->execute();
-            $result = $stmt->get_result();
-            
-            if ($result->num_rows > 0) {
-                // Base update query
-                $update_query = "UPDATE tbl_product SET 
-                    name = ?, 
-                    description = ?, 
-                    price = ?, 
-                    Stock_quantity = ?, 
-                    category_id = ?,
-                    subcategory_id = ?,
-                    brand_id = ?";
-                $params = [$name, $description, $price, $stock, $category_id, $subcategory_id, $brand_id];
-                $types = "ssdiiii";
-                
-                // Handle image upload if new image is provided
-                if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] == 0) {
-                    $image_path = handleImageUpload($_FILES['product_image']);
-                    if ($image_path) {
-                        $update_query .= ", image_path = ?";
-                        $params[] = $image_path;
-                        $types .= "s";
-                    }
-                }
-                
-                // Add WHERE clause and product_id parameter
-                $update_query .= " WHERE product_id = ?";
-                $params[] = $product_id;
-                $types .= "i";
-                
-                // Prepare and execute the statement
-                $stmt = $conn->prepare($update_query);
-                $stmt->bind_param($types, ...$params);
-                
-                if ($stmt->execute()) {
-                    $message = "Product updated successfully";
-                    header("Location: products.php");
-                    exit();
-                } else {
-                    $error = "Failed to update product: " . $conn->error;
-                }
-            } else {
-                $error = "You don't have permission to edit this product";
+        $image_path = '';
+        if (isset($_FILES['product_image']) && $_FILES['product_image']['error'] === 0) {
+            $image_path = handleImageUpload($_FILES['product_image']);
+            if ($image_path === false) {
+                $error = "Failed to upload image";
             }
-        } else {
-            // Add new product
-            // Image is required for new products
-            if (!isset($_FILES['product_image']) || $_FILES['product_image']['error'] != 0) {
-                $error = "Please upload a product image";
-            } else {
-                $image_path = handleImageUpload($_FILES['product_image']);
-                if ($image_path) {
-                    $stmt = $conn->prepare("INSERT INTO tbl_product (seller_id, name, description, price, Stock_quantity, category_id, subcategory_id, brand_id, image_path) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
-                    $stmt->bind_param("issdiiiss", $actual_seller_id, $name, $description, $price, $stock, $category_id, $subcategory_id, $brand_id, $image_path);
-                    
-                    if ($stmt->execute()) {
-                        $message = "Product added successfully";
-                        header("Location: products.php");
-                        exit();
-                    } else {
-                        $error = "Failed to add product: " . $conn->error;
-                    }
+        }
+        
+        if (empty($error)) {
+            if ($product_id) {
+                // Update existing product
+                if (!empty($image_path)) {
+                    // Update with new image
+                    $update_query = "UPDATE tbl_product SET 
+                        name = ?, 
+                        description = ?, 
+                        price = ?, 
+                        Stock_quantity = ?, 
+                        category_id = ?,
+                        size = ?,
+                        image_path = ?
+                        WHERE product_id = ? AND seller_id = ?";
+                    $stmt = $conn->prepare($update_query);
+                    $stmt->bind_param("ssdiissii", 
+                        $name, 
+                        $description, 
+                        $price, 
+                        $stock, 
+                        $category_id, 
+                        $size,
+                        $image_path, 
+                        $product_id, 
+                        $actual_seller_id
+                    );
                 } else {
-                    $error = "Failed to upload image";
+                    // Update without changing image
+                    $update_query = "UPDATE tbl_product SET 
+                        name = ?, 
+                        description = ?, 
+                        price = ?, 
+                        Stock_quantity = ?, 
+                        category_id = ?,
+                        size = ?
+                        WHERE product_id = ? AND seller_id = ?";
+                    $stmt = $conn->prepare($update_query);
+                    $stmt->bind_param("ssdiisii", 
+                        $name, 
+                        $description, 
+                        $price, 
+                        $stock, 
+                        $category_id,
+                        $size, 
+                        $product_id, 
+                        $actual_seller_id
+                    );
                 }
+            } else {
+                // Insert new product
+                $insert_query = "INSERT INTO tbl_product (
+                    name, 
+                    description, 
+                    price, 
+                    Stock_quantity, 
+                    category_id, 
+                    size,
+                    image_path, 
+                    seller_id
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
+                
+                $stmt = $conn->prepare($insert_query);
+                $stmt->bind_param("ssdiissi", 
+                    $name, 
+                    $description, 
+                    $price, 
+                    $stock, 
+                    $category_id,
+                    $size, 
+                    $image_path, 
+                    $actual_seller_id
+                );
+            }
+            
+            if ($stmt->execute()) {
+                $message = $product_id ? "Product updated successfully" : "Product added successfully";
+                header("Location: products.php?success=" . urlencode($message));
+                exit;
+            } else {
+                $error = "Failed to " . ($product_id ? "update" : "add") . " product: " . $conn->error;
             }
         }
     }
@@ -325,17 +366,10 @@ function handleImageUpload($file) {
 
         .sidebar {
             width: 250px;
-<<<<<<< HEAD
             background-color: #1a1a1a !important;
             height: 100vh;
             position: fixed;
             color: white;
-=======
-            background-color: #2d2a4b;
-            height: 100vh;
-            position: fixed;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .sidebar h2, .sidebar h3 {
@@ -347,7 +381,6 @@ function handleImageUpload($file) {
         }
 
         .sidebar a {
-<<<<<<< HEAD
             color: #ffffff;
             padding: 15px 20px;
             text-decoration: none;
@@ -358,20 +391,6 @@ function handleImageUpload($file) {
         .sidebar a:hover, .sidebar .active {
             background-color: #1a1a1a;
             color: #ffffff;
-=======
-            display: flex;
-            align-items: center;
-            color: #fff;
-            padding: 15px 20px;
-            text-decoration: none;
-            border-bottom: 1px solid #3a375f;
-            transition: all 0.3s ease;
-        }
-
-        .sidebar a:hover, .sidebar .active {
-            background-color: #3a375f;
-            color: #fff;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         .main-content {
@@ -405,12 +424,8 @@ function handleImageUpload($file) {
         }
 
         thead {
-<<<<<<< HEAD
             background-color: #1a1a1a !important;
             color: white;
-=======
-            background-color: #2d2a4b;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         th {
@@ -466,44 +481,28 @@ function handleImageUpload($file) {
             display: none;
         }
 
-        .is-invalid {
-            border-color: #dc3545 !important;
-            padding-right: calc(1.5em + 0.75rem) !important;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23dc3545'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23dc3545' stroke='none'/%3e%3c/svg%3e") !important;
-            background-repeat: no-repeat !important;
-            background-position: right calc(0.375em + 0.1875rem) center !important;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
-        }
-
-        .is-valid {
-            border-color: #198754 !important;
-            padding-right: calc(1.5em + 0.75rem) !important;
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%23198754' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e") !important;
-            background-repeat: no-repeat !important;
-            background-position: right calc(0.375em + 0.1875rem) center !important;
-            background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem) !important;
-        }
-
-        .validation-message {
-            display: none;
-            color: #6c757d;
-            font-size: 0.875rem;
-            margin-top: 0.25rem;
-        }
-
         .form-control:focus {
-<<<<<<< HEAD
             border-color: #000000;
             box-shadow: 0 0 0 0.2rem rgba(0, 0, 0, 0.25);
-=======
-            border-color: #80bdff;
-            box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+        }
+
+        .form-control.is-valid {
+            border-color: #198754;
+            padding-right: 0.75rem !important;
+            background-image: none !important;
         }
 
         .form-control.is-invalid {
             border-color: #dc3545;
-            background-image: none;
+            padding-right: 0.75rem !important;
+            background-image: none !important;
+        }
+
+        .validation-message {
+            display: none;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+            color: #dc3545;
         }
 
         /* Add some smooth transition */
@@ -512,7 +511,6 @@ function handleImageUpload($file) {
         }
 
         .btn-primary {
-<<<<<<< HEAD
             background-color: #000000 !important;
             border-color: #000000 !important;
             color: #ffffff;
@@ -521,15 +519,6 @@ function handleImageUpload($file) {
         .btn-primary:hover {
             background-color: #1a1a1a !important;
             border-color: #1a1a1a !important;
-=======
-            background-color: #2d2a4b;
-            border-color: #2d2a4b;
-        }
-
-        .btn-primary:hover {
-            background-color: #3a375f;
-            border-color: #3a375f;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         }
 
         /* Form table styles */
@@ -584,7 +573,6 @@ function handleImageUpload($file) {
                 margin: 5px;
             }
         }
-<<<<<<< HEAD
 
         .nav-link {
             color: white !important;
@@ -641,33 +629,23 @@ function handleImageUpload($file) {
             padding: 20px;
             margin: 0;
         }
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
     </style>
 </head>
 <body>
     <div class="sidebar"><br>
-<<<<<<< HEAD
     <h4 style="color: white; text-align: center;">Perfume Paradise</h4>
-=======
-        <h3>Perfume Paradise</h3>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
         <a href="seller-dashboard.php">Dashboard</a>
         <a href="index.php">Home</a>
         <a href="profile.php">Edit Profile</a>
         <a href="products.php" class="active">Products</a>
-        <a href="sales.php">Sales</a>
-        <a href="reviews.php">Customer Reviews</a>
+        <a href="sales.php">Orders</a>
+        <a href="customer_reviews.php">Customer Reviews</a>
         <a href="logout.php">Logout</a>
     </div>
 
     <div class="main-content">
         <div class="header">
-<<<<<<< HEAD
             <h1 style="color: #000000;" >Product Management</h1>
-=======
-            <h1>Product Management</h1>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
             <div class="mb-4">
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#productModal">
                     <i class="fas fa-plus"></i> Add New Product
@@ -695,6 +673,7 @@ function handleImageUpload($file) {
                                 <th>Name</th>
                                 <th>Price</th>
                                 <th>Stock</th>
+                                <th>Size</th>
                                 <th>Category</th>
                                 <th>Actions</th>
                             </tr>
@@ -712,6 +691,7 @@ function handleImageUpload($file) {
                                 <td><?php echo htmlspecialchars($product['name']); ?></td>
                                 <td>₹<?php echo number_format($product['price'], 2); ?></td>
                                 <td><?php echo htmlspecialchars($product['Stock_quantity']); ?></td>
+                                <td><?php echo htmlspecialchars($product['size']); ?></td>
                                 <td><?php echo htmlspecialchars($product['category_name']); ?></td>
                                 <td>
                                     <button type="button" class="btn btn-primary btn-sm" onclick="editProduct(<?php echo $product['product_id']; ?>)">
@@ -748,10 +728,15 @@ function handleImageUpload($file) {
                                     <label for="name" class="form-label required">Product Name</label>
                                 </td>
                                 <td width="75%">
-                                    <input type="text" class="form-control" id="name" name="name" 
-                                           onfocus="showValidationMessage(this, 'Product name must be between 3 and 50 characters')"
-                                           onblur="validateField(this, 3, 50)">
-                                    <div class="error-message"></div>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="name" 
+                                           name="name" 
+                                           required
+                                           pattern="[A-Za-z\s]+"
+                                           onfocus="showValidationMessage(this, 'Product name must contain only letters and spaces (3-50 characters)')"
+                                           onblur="validateProductName(this)"
+                                           oninput="validateProductName(this)">
                                     <div class="validation-message"></div>
                                 </td>
                             </tr>
@@ -761,10 +746,14 @@ function handleImageUpload($file) {
                                     <label for="description" class="form-label required">Description</label>
                                 </td>
                                 <td>
-                                    <textarea class="form-control" id="description" name="description" rows="3"
-                                              onfocus="showValidationMessage(this, 'Description must be between 10 and 200 characters')"
-                                              onblur="validateField(this, 10, 200)"></textarea>
-                                    <div class="error-message"></div>
+                                    <textarea class="form-control" 
+                                              id="description" 
+                                              name="description" 
+                                              rows="3"
+                                              required
+                                              onfocus="showValidationMessage(this, 'Description must contain only letters and spaces (10-500 characters)')"
+                                              onblur="validateDescription(this)"
+                                              oninput="validateDescription(this)"></textarea>
                                     <div class="validation-message"></div>
                                 </td>
                             </tr>
@@ -774,22 +763,17 @@ function handleImageUpload($file) {
                                     <label for="price" class="form-label required">Price (₹)</label>
                                 </td>
                                 <td>
-<<<<<<< HEAD
                                     <input type="number" 
                                            class="form-control" 
                                            id="price" 
                                            name="price" 
                                            step="0.01" 
-                                           min="0.01" 
+                                           min="0.01"
+                                           max="8000" 
                                            required
-                                           onfocus="showValidationMessage(this, 'Price must be greater than 0')"
-                                           onblur="validateNumericField(this, 0, 'Price')">
-=======
-                                    <input type="number" class="form-control" id="price" name="price" step="0.01"
-                                           onfocus="showValidationMessage(this, 'Price must be greater than 0')"
-                                           onblur="validateNumericField(this, 0, 'price')">
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-                                    <div class="error-message"></div>
+                                           onfocus="showValidationMessage(this, 'Price must be greater than 0 and less than 8000')"
+                                           onblur="validateOnBlur(this, 0, 8000, 'Price')"
+                                           oninput="validateInput(this, 0, 8000, 'Price')">
                                     <div class="validation-message"></div>
                                 </td>
                             </tr>
@@ -799,21 +783,16 @@ function handleImageUpload($file) {
                                     <label for="stock" class="form-label required">Stock Quantity</label>
                                 </td>
                                 <td>
-<<<<<<< HEAD
                                     <input type="number" 
                                            class="form-control" 
                                            id="stock" 
                                            name="stock" 
-                                           min="1" 
+                                           min="1"
+                                           max="300" 
                                            required
-                                           onfocus="showValidationMessage(this, 'Stock quantity must be greater than 0')"
-                                           onblur="validateNumericField(this, 0, 'Stock quantity')">
-=======
-                                    <input type="number" class="form-control" id="stock" name="stock"
-                                           onfocus="showValidationMessage(this, 'Stock quantity must be 0 or greater')"
-                                           onblur="validateNumericField(this, 0, 'stock')">
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-                                    <div class="error-message"></div>
+                                           onfocus="showValidationMessage(this, 'Stock quantity must be greater than 0 and less than 300')"
+                                           onblur="validateOnBlur(this, 0, 300, 'Stock quantity')"
+                                           oninput="validateInput(this, 0, 300, 'Stock quantity')">
                                     <div class="validation-message"></div>
                                 </td>
                             </tr>
@@ -823,96 +802,59 @@ function handleImageUpload($file) {
                                     <label for="category_id" class="form-label required">Category</label>
                                 </td>
                                 <td>
-<<<<<<< HEAD
                                     <select class="form-control" 
                                             id="category_id" 
                                             name="category_id" 
                                             required
-                                            onfocus="showValidationMessage(this, 'Please select a category')"
-                                            onblur="validateSelect(this)">
-                                        <option value="">Select Category</option>
-                                        <?php foreach ($categories as $category): ?>
-                                            <option value="<?php echo $category['category_id']; ?>">
-=======
-                                    <select class="form-control" id="category_id" name="category_id" required 
-                                            onchange="updateSubcategories(); validateSelect(this)"
+                                            onchange="validateCategory(this)"
                                             onfocus="showValidationMessage(this, 'Please select a category')">
                                         <option value="">Select Category</option>
                                         <?php foreach ($categories as $category): ?>
-                                            <option value="<?php echo $category['category_id']; ?>"
-                                                <?php echo (isset($editProduct) && $editProduct['category_id'] == $category['category_id']) ? 'selected' : ''; ?>>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+                                            <option value="<?php echo $category['category_id']; ?>">
                                                 <?php echo htmlspecialchars($category['name']); ?>
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <div class="error-message"></div>
                                     <div class="validation-message"></div>
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>
-<<<<<<< HEAD
-                                    <label for="subcategory_id" class="form-label">Subcategory</label>
+                                    <label for="subcategory_id" class="form-label">Subcategory (Optional)</label>
                                 </td>
                                 <td>
-                                    <select class="form-control" 
-                                            id="subcategory_id" 
-                                            name="subcategory_id">
+                                    <select class="form-control" id="subcategory_id" name="subcategory_id">
                                         <option value="">Select Category First</option>
                                     </select>
-=======
-                                    <label for="subcategory_id" class="form-label required">Subcategory</label>
-                                </td>
-                                <td>
-                                    <select class="form-control" id="subcategory_id" name="subcategory_id" required 
-                                            onchange="updateBrands(); validateSelect(this)"
-                                            onfocus="showValidationMessage(this, 'Please select a subcategory')">
-                                        <option value="">Select Subcategory</option>
-                                        <?php foreach ($subcategories as $subcategory): ?>
-                                            <option value="<?php echo $subcategory['subcategory_id']; ?>" 
-                                                    data-category="<?php echo $subcategory['category_id']; ?>"
-                                                    <?php echo (isset($editProduct) && $editProduct['subcategory_id'] == $subcategory['subcategory_id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($subcategory['name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <div class="error-message"></div>
-                                    <div class="validation-message"></div>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
                                 </td>
                             </tr>
 
                             <tr>
                                 <td>
-<<<<<<< HEAD
-                                    <label for="brand_id" class="form-label">Brand</label>
+                                    <label for="brand_id" class="form-label">Brand (Optional)</label>
                                 </td>
                                 <td>
-                                    <select class="form-control" 
-                                            id="brand_id" 
-                                            name="brand_id">
+                                    <select class="form-control" id="brand_id" name="brand_id">
                                         <option value="">Select Subcategory First</option>
                                     </select>
-=======
-                                    <label for="brand_id" class="form-label required">Brand</label>
+                                </td>
+                            </tr>
+
+                            <tr>
+                                <td>
+                                    <label for="size" class="form-label required">Size</label>
                                 </td>
                                 <td>
-                                    <select class="form-control" id="brand_id" name="brand_id" required 
-                                            onchange="validateSelect(this)"
-                                            onfocus="showValidationMessage(this, 'Please select a brand')">
-                                        <option value="">Select Brand</option>
-                                        <?php foreach ($brands as $brand): ?>
-                                            <option value="<?php echo $brand['brand_id']; ?>"
-                                                <?php echo (isset($editProduct) && $editProduct['brand_id'] == $brand['brand_id']) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($brand['brand_name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
+                                    <select class="form-control" id="size" name="size" required>
+                                        <option value="">Select Size</option>
+                                        <option value="10ml">10 ML</option>
+                                        <option value="20ml">20 ML</option>
+                                        <option value="50ml">50 ML</option>
+                                        <option value="100ml">100 ML</option>
+                                        <option value="200ml">200 ML</option>
                                     </select>
-                                    <div class="error-message"></div>
-                                    <div class="validation-message"></div>
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+                                    <div class="invalid-feedback"></div>
                                 </td>
                             </tr>
 
@@ -921,10 +863,13 @@ function handleImageUpload($file) {
                                     <label for="product_image" class="form-label required">Product Image</label>
                                 </td>
                                 <td>
-                                    <input type="file" class="form-control" id="product_image" name="product_image" required
-                                           onfocus="showValidationMessage(this, 'Please select an image file (JPEG, PNG, or GIF, max 5MB)')"
-                                           onchange="validateImage(this)">
-                                    <div class="error-message"></div>
+                                    <input type="file" 
+                                           class="form-control" 
+                                           id="product_image" 
+                                           name="product_image" 
+                                           required
+                                           onchange="validateImage(this)"
+                                           onfocus="showValidationMessage(this, 'Please select an image file (JPEG, PNG, or GIF, max 5MB)')">
                                     <div class="validation-message"></div>
                                 </td>
                             </tr>
@@ -946,10 +891,8 @@ function handleImageUpload($file) {
             const validationDiv = input.nextElementSibling;
             validationDiv.style.display = 'block';
             validationDiv.textContent = message;
-<<<<<<< HEAD
             validationDiv.style.color = '#dc3545';
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+            input.classList.add('is-invalid');
         }
 
         function hideValidationMessage(input) {
@@ -957,261 +900,165 @@ function handleImageUpload($file) {
             validationDiv.style.display = 'none';
         }
 
-        function validateField(input, minLength, maxLength) {
-            const value = input.value.trim();
-            const errorDiv = input.nextElementSibling;
-            
-            if (value.length < minLength || value.length > maxLength) {
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                errorDiv.textContent = `Length must be between ${minLength} and ${maxLength} characters`;
-                errorDiv.style.display = 'block';
-                return false;
-            } else {
-                input.classList.add('is-valid');
-                input.classList.remove('is-invalid');
-                errorDiv.style.display = 'none';
-                return true;
-            }
-        }
-
-<<<<<<< HEAD
-        function validateNumericField(input, minValue, fieldName) {
+        function validateInput(input, minValue, maxValue, fieldName) {
             const value = parseFloat(input.value);
-            const errorDiv = input.nextElementSibling;
+            const validationDiv = input.nextElementSibling;
             
-            if (isNaN(value) || value <= minValue) {
+            // Remove any existing validation states first
+            input.classList.remove('is-valid', 'is-invalid');
+            
+            // Check if value is empty
+            if (!input.value) {
+                validationDiv.style.display = 'block';
+                validationDiv.textContent = `${fieldName} is required`;
+                validationDiv.style.color = '#dc3545';
                 input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                errorDiv.textContent = `${fieldName} must be greater than ${minValue}`;
-                errorDiv.style.display = 'block';
                 return false;
             }
             
-            input.classList.add('is-valid');
+            // Check if value is within the valid range
+            if (isNaN(value) || value <= minValue || value > maxValue) {
+                validationDiv.style.display = 'block';
+                validationDiv.textContent = `${fieldName} must be greater than ${minValue} and less than ${maxValue}`;
+                validationDiv.style.color = '#dc3545';
+                input.classList.add('is-invalid');
+                return false;
+            }
+            
+            // Valid input - hide error message
+            validationDiv.style.display = 'none';
             input.classList.remove('is-invalid');
-            errorDiv.style.display = 'none';
             return true;
-=======
-        function validateNumericField(input, minValue, type) {
+        }
+
+        function validateOnBlur(input, minValue, maxValue, fieldName) {
             const value = parseFloat(input.value);
-            const errorDiv = input.nextElementSibling;
             
-            if (isNaN(value) || value < minValue) {
+            // Remove any existing validation states
+            input.classList.remove('is-valid', 'is-invalid');
+            
+            // Check for empty or invalid number
+            if (!input.value || isNaN(value)) {
+                showValidationMessage(input, `${fieldName} is required`);
                 input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                errorDiv.textContent = `${type === 'price' ? 'Price' : 'Stock'} must be ${minValue === 0 ? 'greater than or equal to' : 'greater than'} ${minValue}`;
-                errorDiv.style.display = 'block';
-                return false;
-            } else {
-                input.classList.add('is-valid');
-                input.classList.remove('is-invalid');
-                errorDiv.style.display = 'none';
-                return true;
-            }
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-        }
-
-        function validateSelect(select) {
-            const errorDiv = select.nextElementSibling;
-            
-            if (!select.value) {
-                select.classList.add('is-invalid');
-                select.classList.remove('is-valid');
-<<<<<<< HEAD
-                errorDiv.textContent = 'This field is required';
-                errorDiv.style.display = 'block';
                 return false;
             }
             
-            select.classList.add('is-valid');
-            select.classList.remove('is-invalid');
-            errorDiv.style.display = 'none';
-            return true;
-=======
-                errorDiv.textContent = 'Please make a selection';
-                errorDiv.style.display = 'block';
-                return false;
-            } else {
-                select.classList.add('is-valid');
-                select.classList.remove('is-invalid');
-                errorDiv.style.display = 'none';
-                return true;
-            }
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-        }
-
-        function validateImage(input) {
-            const errorDiv = input.nextElementSibling;
-            const file = input.files[0];
-            const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-            const maxSize = 5 * 1024 * 1024; // 5MB
-            
-            if (!file) {
+            // Check range
+            if (value <= minValue || value > maxValue) {
+                showValidationMessage(input, `${fieldName} must be greater than ${minValue} and less than ${maxValue}`);
                 input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                errorDiv.textContent = 'Please select an image';
-                errorDiv.style.display = 'block';
                 return false;
             }
             
-            if (!validTypes.includes(file.type)) {
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                errorDiv.textContent = 'Please select a valid image file (JPEG, PNG, or GIF)';
-                errorDiv.style.display = 'block';
-                return false;
-            }
-            
-            if (file.size > maxSize) {
-                input.classList.add('is-invalid');
-                input.classList.remove('is-valid');
-                errorDiv.textContent = 'Image size must be less than 5MB';
-                errorDiv.style.display = 'block';
-                return false;
-            }
-            
-            input.classList.add('is-valid');
+            // Valid input - hide error message
+            input.nextElementSibling.style.display = 'none';
             input.classList.remove('is-invalid');
-            errorDiv.style.display = 'none';
             return true;
         }
 
         function validateForm() {
             let isValid = true;
-            const name = document.getElementById('name');
-            const description = document.getElementById('description');
+            
+            // Validate price (0-8000)
             const price = document.getElementById('price');
+            isValid = validateInput(price, 0, 8000, 'Price') && isValid;
+            
+            // Validate stock (0-300)
             const stock = document.getElementById('stock');
-            const category = document.getElementById('category_id');
-            const subcategory = document.getElementById('subcategory_id');
-            const brand = document.getElementById('brand_id');
-            const image = document.getElementById('product_image');
-            
-            // Validate product name
-            if (name.value.length < 3 || name.value.length > 50) {
-                showValidationMessage(name, 'Product name must be between 3 and 50 characters');
-                name.classList.add('is-invalid');
-                name.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                name.classList.add('is-valid');
-                name.classList.remove('is-invalid');
-                hideValidationMessage(name);
-            }
-            
-            // Validate description
-            if (description.value.length < 10 || description.value.length > 200) {
-                showValidationMessage(description, 'Description must be between 10 and 200 characters');
-                description.classList.add('is-invalid');
-                description.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                description.classList.add('is-valid');
-                description.classList.remove('is-invalid');
-                hideValidationMessage(description);
-            }
-            
-            // Validate price
-            if (parseFloat(price.value) <= 0) {
-                showValidationMessage(price, 'Price must be greater than 0');
-                price.classList.add('is-invalid');
-                price.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                price.classList.add('is-valid');
-                price.classList.remove('is-invalid');
-                hideValidationMessage(price);
-            }
-            
-            // Validate stock
-            if (parseInt(stock.value) < 0) {
-                showValidationMessage(stock, 'Stock quantity must be 0 or greater');
-                stock.classList.add('is-invalid');
-                stock.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                stock.classList.add('is-valid');
-                stock.classList.remove('is-invalid');
-                hideValidationMessage(stock);
-            }
+            isValid = validateInput(stock, 0, 300, 'Stock quantity') && isValid;
             
             // Validate category
-            if (!category.value) {
-                showValidationMessage(category, 'Please select a category');
-                category.classList.add('is-invalid');
-                category.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                category.classList.add('is-valid');
-                category.classList.remove('is-invalid');
-                hideValidationMessage(category);
-            }
-            
-            // Validate subcategory
-            if (!subcategory.value) {
-                showValidationMessage(subcategory, 'Please select a subcategory');
-                subcategory.classList.add('is-invalid');
-                subcategory.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                subcategory.classList.add('is-valid');
-                subcategory.classList.remove('is-invalid');
-                hideValidationMessage(subcategory);
-            }
-            
-            // Validate brand
-            if (!brand.value) {
-                showValidationMessage(brand, 'Please select a brand');
-                brand.classList.add('is-invalid');
-                brand.classList.remove('is-valid');
-                isValid = false;
-            } else {
-                brand.classList.add('is-valid');
-                brand.classList.remove('is-invalid');
-                hideValidationMessage(brand);
-            }
+            const category = document.getElementById('category_id');
+            isValid = validateCategory(category) && isValid;
             
             // Validate image
-            if (image.value === '' && !document.getElementById('edit_product_id')) {
-                showValidationMessage(image, 'Please select an image');
-                image.classList.add('is-invalid');
-                image.classList.remove('is-valid');
+            const productImage = document.getElementById('product_image');
+            isValid = validateImage(productImage) && isValid;
+            
+            // Validate size
+            const size = document.getElementById('size');
+            if (!size.value) {
+                showValidationMessage(size, 'Perfume size is required');
                 isValid = false;
-            } else if (image.files.length > 0) {
-                const file = image.files[0];
-                const validTypes = ['image/jpeg', 'image/png', 'image/gif'];
-                const maxSize = 5 * 1024 * 1024; // 5MB
-                
-                if (!validTypes.includes(file.type)) {
-                    showValidationMessage(image, 'Please select a valid image file (JPEG, PNG, or GIF)');
-                    image.classList.add('is-invalid');
-                    image.classList.remove('is-valid');
-                    isValid = false;
-                } else if (file.size > maxSize) {
-                    showValidationMessage(image, 'Image size must be less than 5MB');
-                    image.classList.add('is-invalid');
-                    image.classList.remove('is-valid');
-                    isValid = false;
-                } else {
-                    image.classList.add('is-valid');
-                    image.classList.remove('is-invalid');
-                    hideValidationMessage(image);
-                }
             }
             
             return isValid;
         }
 
-        // Add event listeners for real-time validation
+        // Add event listeners when the document loads
         document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('productForm');
-            if (form) {
-                form.addEventListener('submit', function(e) {
-                    const isValid = validateForm();
-                    if (!isValid) {
-                        e.preventDefault();
+            const priceInput = document.getElementById('price');
+            const stockInput = document.getElementById('stock');
+            
+            if (priceInput) {
+                priceInput.addEventListener('focus', function() {
+                    showValidationMessage(this, 'Price must be greater than 0 and less than 8000');
+                });
+
+                priceInput.addEventListener('input', function() {
+                    const value = parseFloat(this.value);
+                    if (value > 0 && value <= 8000) {
+                        this.nextElementSibling.style.display = 'none';
+                        this.classList.remove('is-invalid');
+                    } else {
+                        showValidationMessage(this, 'Price must be greater than 0 and less than 8000');
                     }
+                });
+
+                priceInput.addEventListener('blur', function() {
+                    validateOnBlur(this, 0, 8000, 'Price');
+                });
+            }
+            
+            if (stockInput) {
+                stockInput.addEventListener('focus', function() {
+                    showValidationMessage(this, 'Stock quantity must be greater than 0 and less than 300');
+                });
+
+                stockInput.addEventListener('input', function() {
+                    const value = parseInt(this.value);
+                    if (value > 0 && value <= 300) {
+                        this.nextElementSibling.style.display = 'none';
+                        this.classList.remove('is-invalid');
+                    } else {
+                        showValidationMessage(this, 'Stock quantity must be greater than 0 and less than 300');
+                    }
+                });
+
+                stockInput.addEventListener('blur', function() {
+                    validateOnBlur(this, 0, 300, 'Stock quantity');
+                });
+            }
+
+            const categorySelect = document.getElementById('category_id');
+            const productImage = document.getElementById('product_image');
+            
+            if (categorySelect) {
+                categorySelect.addEventListener('change', function() {
+                    validateCategory(this);
+                });
+            }
+            
+            if (productImage) {
+                productImage.addEventListener('change', function() {
+                    validateImage(this);
+                });
+            }
+
+            // Add validation for size select
+            const sizeSelect = document.getElementById('size');
+            if (sizeSelect) {
+                sizeSelect.addEventListener('focus', function() {
+                    showValidationMessage(this, 'Please select a perfume size');
+                });
+
+                sizeSelect.addEventListener('change', function() {
+                    validateSize(this);
+                });
+
+                sizeSelect.addEventListener('blur', function() {
+                    validateSize(this);
                 });
             }
         });
@@ -1274,6 +1121,9 @@ function handleImageUpload($file) {
                             brandSelect.value = product.brand_id;
                         }, 100);
                     }, 100);
+
+                    // Set the size value
+                    document.getElementById('size').value = product.size;
 
                     // Add hidden product ID field
                     let productIdInput = document.getElementById('edit_product_id');
@@ -1350,35 +1200,45 @@ function handleImageUpload($file) {
             }
         });
 
-        // Update the validation function to handle edit mode
-        function validateForm() {
-            let isValid = true;
-            const isEditMode = document.getElementById('edit_product_id') !== null;
+        // Add these validation functions
+        function validateLettersAndSpaces(input, minLength, maxLength, fieldName) {
+            const value = input.value.trim();
+            const errorDiv = input.nextElementSibling;
+            const pattern = /^[A-Za-z\s]+$/;
             
-            // Validate all fields
-            isValid = validateField(document.getElementById('name'), 3, 50) && isValid;
-            isValid = validateField(document.getElementById('description'), 10, 200) && isValid;
-<<<<<<< HEAD
-            isValid = validateNumericField(document.getElementById('price'), 0, 'Price') && isValid;
-            isValid = validateNumericField(document.getElementById('stock'), 0, 'Stock quantity') && isValid;
-            isValid = validateSelect(document.getElementById('category_id')) && isValid;
-=======
-            isValid = validateNumericField(document.getElementById('price'), 0, 'price') && isValid;
-            isValid = validateNumericField(document.getElementById('stock'), 0, 'stock') && isValid;
-            isValid = validateSelect(document.getElementById('category_id')) && isValid;
-            isValid = validateSelect(document.getElementById('subcategory_id')) && isValid;
-            isValid = validateSelect(document.getElementById('brand_id')) && isValid;
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
-            
-            // Validate image only if uploaded in edit mode or if it's a new product
-            const imageInput = document.getElementById('product_image');
-            if (imageInput.files.length > 0 || !isEditMode) {
-                isValid = validateImage(imageInput) && isValid;
+            // Check if empty
+            if (value.length === 0) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                errorDiv.textContent = `${fieldName} is required`;
+                errorDiv.style.display = 'block';
+                return false;
             }
             
-            return isValid;
+            // Check length
+            if (value.length < minLength || value.length > maxLength) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                errorDiv.textContent = `${fieldName} must be between ${minLength} and ${maxLength} characters`;
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            
+            // Check for letters and spaces only
+            if (!pattern.test(value)) {
+                input.classList.add('is-invalid');
+                input.classList.remove('is-valid');
+                errorDiv.textContent = `${fieldName} can only contain letters and spaces`;
+                errorDiv.style.display = 'block';
+                return false;
+            }
+            
+            // All validations passed
+            input.classList.add('is-valid');
+            input.classList.remove('is-invalid');
+            errorDiv.style.display = 'none';
+            return true;
         }
-<<<<<<< HEAD
 
         document.addEventListener('DOMContentLoaded', function() {
             // Get the select elements
@@ -1462,8 +1322,191 @@ function handleImageUpload($file) {
                 validateNumericField(this, 0, 'Stock quantity');
             });
         });
-=======
->>>>>>> be96bba731a0f91bdfdea8826c2876e147b824db
+
+        // Add these new validation functions
+        function validateCategory(select) {
+            const validationDiv = select.nextElementSibling;
+            
+            if (select.value) {
+                // Category is selected
+                validationDiv.style.display = 'none';
+                select.classList.add('is-valid');
+                select.classList.remove('is-invalid');
+                return true;
+            } else {
+                // No category selected
+                validationDiv.style.display = 'block';
+                validationDiv.textContent = 'Please select a category';
+                validationDiv.style.color = '#dc3545';
+                select.classList.add('is-invalid');
+                select.classList.remove('is-valid');
+                return false;
+            }
+        }
+
+        function validateImage(input) {
+            const validationDiv = input.nextElementSibling;
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+            const maxSize = 5 * 1024 * 1024; // 5MB
+            
+            if (input.files && input.files[0]) {
+                const file = input.files[0];
+                
+                if (!allowedTypes.includes(file.type)) {
+                    validationDiv.style.display = 'block';
+                    validationDiv.textContent = 'Please select a valid image file (JPEG, PNG, or GIF)';
+                    validationDiv.style.color = '#dc3545';
+                    input.classList.add('is-invalid');
+                    input.classList.remove('is-valid');
+                    return false;
+                }
+                
+                if (file.size > maxSize) {
+                    validationDiv.style.display = 'block';
+                    validationDiv.textContent = 'Image size must be less than 5MB';
+                    validationDiv.style.color = '#dc3545';
+                    input.classList.add('is-invalid');
+                    input.classList.remove('is-valid');
+                    return false;
+                }
+                
+                // Valid image file
+                validationDiv.style.display = 'none';
+                input.classList.add('is-valid');
+                input.classList.remove('is-invalid');
+                return true;
+            }
+            
+            // No file selected
+            validationDiv.style.display = 'block';
+            validationDiv.textContent = 'Please select an image file';
+            validationDiv.style.color = '#dc3545';
+            input.classList.add('is-invalid');
+            input.classList.remove('is-valid');
+            return false;
+        }
+
+        // Add this new function to check product name via AJAX
+        function checkProductNameExists(name, productId = null) {
+            return new Promise((resolve, reject) => {
+                const formData = new FormData();
+                formData.append('action', 'check_product_name');
+                formData.append('name', name);
+                if (productId) {
+                    formData.append('product_id', productId);
+                }
+
+                fetch('check_product_name.php', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => resolve(data.exists))
+                .catch(error => reject(error));
+            });
+        }
+
+        // Update the validateProductName function
+        async function validateProductName(input) {
+            const value = input.value.trim();
+            const validationDiv = input.nextElementSibling;
+            const pattern = /^[A-Za-z\s]+$/;
+            
+            // Remove any existing validation states
+            input.classList.remove('is-invalid');
+            
+            // Check if empty
+            if (!value) {
+                showValidationMessage(input, 'Product name is required');
+                return false;
+            }
+            
+            // Check length
+            if (value.length < 3 || value.length > 50) {
+                showValidationMessage(input, 'Product name must be between 3 and 50 characters');
+                return false;
+            }
+            
+            // Check for letters and spaces only
+            if (!pattern.test(value)) {
+                showValidationMessage(input, 'Product name can only contain letters and spaces');
+                return false;
+            }
+
+            try {
+                // Get the product ID if editing
+                const productId = document.getElementById('edit_product_id')?.value;
+                
+                // Check if name exists
+                const exists = await checkProductNameExists(value, productId);
+                if (exists) {
+                    showValidationMessage(input, 'A product with this name already exists');
+                    return false;
+                }
+                
+                // Valid input - hide error message
+                validationDiv.style.display = 'none';
+                input.classList.remove('is-invalid');
+                return true;
+            } catch (error) {
+                console.error('Error checking product name:', error);
+                showValidationMessage(input, 'Error checking product name');
+                return false;
+            }
+        }
+
+        function validateDescription(input) {
+            const value = input.value.trim();
+            const validationDiv = input.nextElementSibling;
+            // Updated pattern to allow letters, whitespaces, and special characters
+            const pattern = /^[A-Za-z\s\.,!@#$%^&*()_\-+=\[\]{};:'"\\|/<>?`~]+$/;
+            
+            // Remove any existing validation states
+            input.classList.remove('is-invalid');
+            
+            // Check if empty
+            if (!value) {
+                showValidationMessage(input, 'Description is required');
+                return false;
+            }
+            
+            // Check length
+            if (value.length < 10 || value.length > 500) {
+                showValidationMessage(input, 'Description must be between 10 and 500 characters');
+                return false;
+            }
+            
+            // Check for allowed characters
+            if (!pattern.test(value)) {
+                showValidationMessage(input, 'Description can only contain letters, spaces, and special characters');
+                return false;
+            }
+            
+            // Valid input - hide error message
+            validationDiv.style.display = 'none';
+            input.classList.remove('is-invalid');
+            return true;
+        }
+
+        function validateSize(select) {
+            const validationDiv = select.nextElementSibling;
+            
+            if (select.value) {
+                // Size is selected
+                validationDiv.style.display = 'none';
+                select.classList.add('is-valid');
+                select.classList.remove('is-invalid');
+                return true;
+            } else {
+                // No size selected
+                validationDiv.style.display = 'block';
+                validationDiv.textContent = 'Please select a perfume size';
+                validationDiv.style.color = '#dc3545';
+                select.classList.add('is-invalid');
+                select.classList.remove('is-valid');
+                return false;
+            }
+        }
     </script>
 </body>
 </html>
